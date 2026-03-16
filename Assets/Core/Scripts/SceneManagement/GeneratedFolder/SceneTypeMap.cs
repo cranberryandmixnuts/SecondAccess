@@ -7,23 +7,27 @@ public static class SceneTypeMap
     {
         "",
         "TitleScene",
+        "TestScene",
     };
 
     private static readonly string[] ScenePaths =
     {
         "",
         "Assets/Core/Scenes/TitleScene.unity",
+        "Assets/Core/Test/TestScene.unity",
     };
 
     private static readonly bool[] EnabledInBuildSettings =
     {
         false,
         true,
+        true,
     };
 
     private static readonly Dictionary<string, SceneType> NameToType = new(StringComparer.Ordinal)
     {
         { "TitleScene", SceneType.TitleScene },
+        { "TestScene", SceneType.TestScene },
     };
 
     public static int TotalCount => SceneNames.Length;

@@ -1,18 +1,17 @@
+using System;
 using UnityEngine;
 
-public interface ISingletonScope
-{
-    public bool IsGlobal { get; }
-}
+public interface ISingletonScope { public bool IsGlobal { get; } }
 
-public readonly struct GlobalScope : ISingletonScope
-{
-    public bool IsGlobal => true;
-}
+public readonly struct GlobalScope : ISingletonScope { public bool IsGlobal => true; }
+public readonly struct SceneScope : ISingletonScope { public bool IsGlobal => false; }
 
-public readonly struct SceneScope : ISingletonScope
+public static class SingletonRuntimeBridge
 {
-    public bool IsGlobal => false;
+    public static event Action SubsystemRegistration;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void OnSubsystemRegistration() => SubsystemRegistration?.Invoke();
 }
 
 [DefaultExecutionOrder(-30000)]
@@ -22,7 +21,8 @@ public abstract class Singleton<T, TScope> : MonoBehaviour where T : MonoBehavio
 
     private static readonly TScope scope = new();
 
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static Singleton() { SingletonRuntimeBridge.SubsystemRegistration += ResetStatics; }
+
     private static void ResetStatics() => Instance = null;
 
     protected void Awake()
@@ -35,6 +35,7 @@ public abstract class Singleton<T, TScope> : MonoBehaviour where T : MonoBehavio
             Destroy(gameObject);
             return;
         }
+
         Instance = self;
 
         if (scope.IsGlobal) DontDestroyOnLoad(gameObject);
@@ -44,8 +45,7 @@ public abstract class Singleton<T, TScope> : MonoBehaviour where T : MonoBehavio
 
     protected void OnDestroy()
     {
-        if (Instance == this)
-            Instance = null;
+        if (Instance == (T)(object)this) Instance = null;
 
         SingletonOnDestroy();
     }

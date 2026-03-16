@@ -516,6 +516,14 @@ PrefabInstance:
       propertyPath: GlobalObjectIdHash
       value: 313829499
       objectReference: {fileID: 0}
+    - target: {fileID: 1717238182000718083, guid: 569011abfce88d2449c7f724521749de, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1717238182000718083, guid: 569011abfce88d2449c7f724521749de, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 3220358823
+      objectReference: {fileID: 0}
     - target: {fileID: 4092391933100691811, guid: 569011abfce88d2449c7f724521749de, type: 3}
       propertyPath: m_Name
       value: PlayerNetwork
