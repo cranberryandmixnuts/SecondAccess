@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: abbd1946bfa98344e8e9ee6f95aeef9d, type: 3}
   m_Name: SceneNameGeneratorSettings
   m_EditorClassIdentifier: Assembly-CSharp-Editor::SceneNameGeneratorSettings
-  generatedFolder: Assets/Core/Scripts/SceneManagement/GeneratedFolder
+  generatedFolder: Assets/Core/Scripts/GameManagement/SceneManagement/GeneratedFolder
   enumFileName: SceneType.cs
   mapFileName: SceneTypeMap.cs
   useNamespace: 0

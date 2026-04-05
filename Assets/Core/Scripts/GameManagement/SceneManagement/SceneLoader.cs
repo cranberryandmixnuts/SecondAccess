@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -12,8 +13,9 @@ public sealed class SceneLoader : Singleton<SceneLoader, GlobalScope>
     [SerializeField] private float fadeDuration = 1.0f;
 
     public bool IsTransitioning { get; private set; } = false;
-
     public SceneType CurrentSceneType { get; private set; } = SceneType.None;
+
+    public event Action<SceneType> TransitionCompleted;
 
     private Tween fadeTween;
     private Tween pendingRequestTween;
@@ -22,9 +24,6 @@ public sealed class SceneLoader : Singleton<SceneLoader, GlobalScope>
     private void Start()
     {
         CurrentSceneType = GetCurrentSceneType();
-
-        BgmId bgm = GetBgmForScene(CurrentSceneType);
-        SoundManager.Instance.ChangeBgm(bgm, fadeDuration);
 
         Color imageColor = fadeImage.color;
         imageColor.a = 0f;
@@ -75,11 +74,7 @@ public sealed class SceneLoader : Singleton<SceneLoader, GlobalScope>
     private IEnumerator LoadSceneSequence(SceneType scene)
     {
         IsTransitioning = true;
-
         fadeImage.gameObject.SetActive(true);
-
-        BgmId bgm = GetBgmForScene(scene);
-        SoundManager.Instance.ChangeBgm(bgm, fadeDuration);
 
         yield return FadeTo(1f).WaitForCompletion();
 
@@ -96,11 +91,12 @@ public sealed class SceneLoader : Singleton<SceneLoader, GlobalScope>
         yield return new WaitUntil(() => asyncLoad.isDone);
 
         CurrentSceneType = GetCurrentSceneType();
+        TransitionCompleted?.Invoke(CurrentSceneType);
 
         yield return FadeTo(0f).WaitForCompletion();
 
-        IsTransitioning = false;
         fadeImage.gameObject.SetActive(false);
+        IsTransitioning = false;
 
         if (pendingScene != SceneType.None)
         {
@@ -142,14 +138,5 @@ public sealed class SceneLoader : Singleton<SceneLoader, GlobalScope>
 
         Debug.LogError($"현재 씬 이름 '{name}' 이 SceneTypeMap과 일치하지 않습니다.");
         return SceneType.None;
-    }
-
-    private BgmId GetBgmForScene(SceneType scene)
-    {
-        return scene switch
-        {
-            SceneType.TitleScene => BgmId.Title,
-            _ => BgmId.None,
-        };
     }
 }

@@ -9,8 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 852bb8db0060d3b4aafdb583a00db030, type: 3}
-  m_Name: SoundStorage
-  m_EditorClassIdentifier: Assembly-CSharp::SoundStorage
-  bgmEntries: []
-  sfxEntries: []
+  m_Script: {fileID: 11500000, guid: 2cc91c4aa66863042ab62d6dd58f24b9, type: 3}
+  m_Name: AudioRegistry
+  m_EditorClassIdentifier: Assembly-CSharp::AudioRegistry
+  audioClips: []
