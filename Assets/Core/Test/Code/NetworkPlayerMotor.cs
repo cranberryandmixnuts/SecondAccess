@@ -13,8 +13,8 @@ public sealed class NetworkPlayerMotor : NetworkBehaviour
 
     private void Update()
     {
-        Vector2 input = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
-        Vector3 move = new Vector3(input.x, 0f, input.y);
+        Vector2 input = new(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
+        Vector3 move = new(input.x, 0f, input.y);
 
         if (move.sqrMagnitude > 1f)
             move.Normalize();
