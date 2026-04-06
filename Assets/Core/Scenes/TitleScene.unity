@@ -724,7 +724,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9768079ce56749142aa0fc870291bfe6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InputManager
-  actions: {fileID: 0}
+  actions: {fileID: -944628639613478452, guid: 4fd11e2d77fe8b546a22419331519868, type: 3}
   playerMapName: Player
   UIMapName: UI
   moveActionName: Move
