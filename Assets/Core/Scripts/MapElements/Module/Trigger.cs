@@ -4,7 +4,7 @@ using UnityEngine;
 
 public sealed class Trigger : MonoBehaviour
 {
-    [SerializeField, ListDrawerSettings(Expanded = true)]
+    [SerializeField]
     private List<Triggerable> targets = new();
 
     public IReadOnlyList<Triggerable> Targets => targets;
