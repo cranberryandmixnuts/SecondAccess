@@ -3,20 +3,16 @@ using UnityEngine;
 
 public sealed class PlayerInteractionModule : PlayerModule
 {
-    [TitleGroup("References")]
-    [SerializeField, Required]
+    [SerializeField, Required, TitleGroup("References")]
     private InteractionSource interactionSource;
 
-    [TitleGroup("References")]
-    [SerializeField]
+    [SerializeField, Required, TitleGroup("References")]
     private Camera interactionCamera;
 
-    [TitleGroup("Raycast")]
-    [SerializeField]
+    [SerializeField,TitleGroup("Raycast")]
     private LayerMask interactionMask = ~0;
 
-    [TitleGroup("Raycast")]
-    [SerializeField, MinValue(0f)]
+    [SerializeField, MinValue(0f), TitleGroup("Raycast")]
     private float interactionDistance = 100f;
 
     public Interactable HoveredInteractable => interactionSource.HoveredInteractable;

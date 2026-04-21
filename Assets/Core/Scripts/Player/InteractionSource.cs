@@ -122,9 +122,8 @@ public sealed class InteractionSource : MonoBehaviour
 
     private Interactable ResolveInteractable(Collider targetCollider)
     {
-        Interactable interactable = targetCollider.GetComponent<Interactable>();
-
-        if (interactable != null)
+        
+        if (targetCollider.TryGetComponent<Interactable>(out var interactable))
             return interactable;
 
         return targetCollider.GetComponentInParent<Interactable>();

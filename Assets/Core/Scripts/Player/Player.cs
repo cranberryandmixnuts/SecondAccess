@@ -1,20 +1,21 @@
 using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using UnityEngine;
-
 [DefaultExecutionOrder(-20000)]
+
+[RequireComponent(typeof(PlayerMovementModule))]
+[RequireComponent(typeof(PlayerInteractionModule))]
 public sealed class Player : MonoBehaviour
 {
-    [ShowInInspector, ReadOnly]
+    [HideInInspector]
     public PlayerMovementModule Movement { get; private set; }
 
-    [ShowInInspector, ReadOnly]
+    [HideInInspector]
     public PlayerInteractionModule Interaction { get; private set; }
 
     public IReadOnlyList<PlayerModule> Modules => modules;
 
-    [SerializeField, HideInInspector]
-    private List<PlayerModule> modules = new();
+    private readonly List<PlayerModule> modules = new();
 
     private void Reset() => CacheModules();
 

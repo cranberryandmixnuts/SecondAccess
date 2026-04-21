@@ -4,40 +4,31 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody))]
 public sealed class PlayerMovementModule : PlayerModule
 {
-    [TitleGroup("References")]
-    [SerializeField, Required]
+    [SerializeField, Required, TitleGroup("References")]
     private Rigidbody body;
 
-    [TitleGroup("References")]
-    [SerializeField]
+    [SerializeField, Required, TitleGroup("References")]
     private Transform rotationRoot;
 
-    [TitleGroup("References")]
-    [SerializeField]
+    [SerializeField, TitleGroup("References")]
     private Transform cameraTransform;
 
-    [TitleGroup("Movement")]
-    [SerializeField, MinValue(0f)]
-    private float moveSpeed = 5f;
+    [SerializeField, MinValue(0f), TitleGroup("Movement")]
+    private float moveSpeed = 10f;
 
-    [TitleGroup("Movement")]
-    [SerializeField, MinValue(0f)]
+    [SerializeField, MinValue(0f), TitleGroup("Movement")]
     private float acceleration = 30f;
 
-    [TitleGroup("Movement")]
-    [SerializeField, MinValue(0f)]
+    [SerializeField, MinValue(0f), TitleGroup("Movement")]
     private float deceleration = 40f;
 
-    [TitleGroup("Movement")]
-    [SerializeField]
+    [SerializeField, TitleGroup("Movement")]
     private bool useCameraRelativeMovement;
 
-    [TitleGroup("Rotation")]
-    [SerializeField]
+    [SerializeField, TitleGroup("Rotation")]
     private bool rotateToMovement = true;
 
-    [TitleGroup("Rotation")]
-    [SerializeField, MinValue(0f)]
+    [SerializeField, MinValue(0f), TitleGroup("Rotation")]
     private float rotationSpeed = 1080f;
 
     public Vector2 Input { get; private set; }
