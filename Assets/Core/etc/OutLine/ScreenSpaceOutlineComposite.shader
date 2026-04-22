@@ -4,7 +4,7 @@ Shader "Hidden/Custom/ScreenSpaceOutlineComposite"
     {
         [NoScaleOffset]_OutlineMaskTex("Outline Mask", 2D) = "black" {}
         _OutlineColor("Outline Color", Color) = (0, 0, 0, 1)
-        _OutlineWidthPixels("Outline Width Pixels", Range(0, 8)) = 8
+        _OutlineWidthPixels("Outline Width Pixels", Range(0, 30)) = 10
         _AlphaThreshold("Alpha Threshold", Range(0, 1)) = 0.5
     }
 
@@ -55,13 +55,11 @@ Shader "Hidden/Custom/ScreenSpaceOutlineComposite"
                 float center = step(_AlphaThreshold, SampleMask(uv));
                 float outer = 0.0;
                 float2 texel = _OutlineMaskTex_TexelSize.xy;
-                int radius = (int)clamp(round(_OutlineWidthPixels), 0.0, 8.0);
+                int radius = (int)clamp(round(_OutlineWidthPixels), 0.0, 30.0);
 
-                [unroll]
-                for (int y = -8; y <= 8; y++)
+                for (int y = -radius; y <= radius; y++)
                 {
-                    [unroll]
-                    for (int x = -8; x <= 8; x++)
+                    for (int x = -radius; x <= radius; x++)
                     {
                         if (x == 0 && y == 0)
                             continue;
