@@ -20,13 +20,24 @@ public sealed class Interactable : MonoBehaviour
     [SerializeField]
     private bool allowMultipleInteractors;
 
+    [Title("Outline")]
+    [SerializeField]
+    private bool useHoverOutline = true;
+
+    [SerializeField]
+    private string outlineLayerName = "Outline Target";
+
+    [SerializeField]
+    private bool includeOutlineTargetChildren = true;
+
+    [SerializeField]
+    private List<GameObject> outlineTargets = new();
+
     public InteractionExecutionType ExecutionType => executionType;
     public bool InteractionEnabled => interactionEnabled;
 
-    [ShowInInspector, ReadOnly]
     public int HoveredSourceCount => hoveredSources.Count;
 
-    [ShowInInspector, ReadOnly]
     public int InteractingSourceCount => interactingSources.Count;
 
     public bool IsHovered => hoveredSources.Count > 0;
@@ -41,9 +52,11 @@ public sealed class Interactable : MonoBehaviour
 
     private readonly HashSet<InteractionSource> hoveredSources = new();
     private readonly HashSet<InteractionSource> interactingSources = new();
+    private readonly Dictionary<Transform, int> outlinedOriginalLayers = new();
 
     private void OnDisable()
     {
+        SetOutlineActive(false);
         hoveredSources.Clear();
         interactingSources.Clear();
     }
@@ -103,6 +116,12 @@ public sealed class Interactable : MonoBehaviour
             return;
 
         interactionEnabled = value;
+
+        if (!interactionEnabled || hoveredSources.Count == 0)
+            SetOutlineActive(false);
+        else
+            SetOutlineActive(true);
+
         InteractionEnabledChanged?.Invoke(interactionEnabled);
     }
 
@@ -110,6 +129,9 @@ public sealed class Interactable : MonoBehaviour
     {
         if (!hoveredSources.Add(source))
             return;
+
+        if (hoveredSources.Count == 1)
+            SetOutlineActive(true);
 
         HoverEntered?.Invoke(source);
     }
@@ -119,6 +141,62 @@ public sealed class Interactable : MonoBehaviour
         if (!hoveredSources.Remove(source))
             return;
 
+        if (hoveredSources.Count == 0)
+            SetOutlineActive(false);
+
         HoverExited?.Invoke(source);
+    }
+
+    private void SetOutlineActive(bool active)
+    {
+        if (!useHoverOutline)
+            return;
+
+        if (active)
+        {
+            int outlineLayer = LayerMask.NameToLayer(outlineLayerName);
+
+            if (outlineLayer < 0)
+                return;
+
+            ApplyOutlineLayer(outlineLayer);
+            return;
+        }
+
+        RestoreOriginalLayers();
+    }
+
+    private void ApplyOutlineLayer(int outlineLayer)
+    {
+        if (outlinedOriginalLayers.Count > 0)
+            return;
+
+        for (int i = 0; i < outlineTargets.Count; i++)
+            ApplyOutlineLayerRecursive(outlineTargets[i].transform, outlineLayer);
+    }
+
+    private void ApplyOutlineLayerRecursive(Transform target, int outlineLayer)
+    {
+        if (!outlinedOriginalLayers.ContainsKey(target))
+            outlinedOriginalLayers.Add(target, target.gameObject.layer);
+
+        target.gameObject.layer = outlineLayer;
+
+        if (!includeOutlineTargetChildren)
+            return;
+
+        for (int i = 0; i < target.childCount; i++)
+            ApplyOutlineLayerRecursive(target.GetChild(i), outlineLayer);
+    }
+
+    private void RestoreOriginalLayers()
+    {
+        if (outlinedOriginalLayers.Count == 0)
+            return;
+
+        foreach (KeyValuePair<Transform, int> pair in outlinedOriginalLayers)
+            pair.Key.gameObject.layer = pair.Value;
+
+        outlinedOriginalLayers.Clear();
     }
 }

@@ -57,7 +57,9 @@ public sealed class OutlineMaskCameraSync : MonoBehaviour
 
         ReleaseMaskTexture();
 
-        maskTexture = new RenderTexture(width, height, depthBufferBits, RenderTextureFormat.R8)
+        RenderTextureFormat format = GetMaskRenderTextureFormat();
+
+        maskTexture = new RenderTexture(width, height, depthBufferBits, format, RenderTextureReadWrite.Linear)
         {
             name = "_OutlineMaskRT",
             filterMode = FilterMode.Point,
@@ -72,6 +74,14 @@ public sealed class OutlineMaskCameraSync : MonoBehaviour
         cachedHeight = height;
 
         maskCamera.targetTexture = maskTexture;
+    }
+
+    private RenderTextureFormat GetMaskRenderTextureFormat()
+    {
+        if (SystemInfo.SupportsRenderTextureFormat(RenderTextureFormat.R8))
+            return RenderTextureFormat.R8;
+
+        return RenderTextureFormat.ARGB32;
     }
 
     private void ApplyMaterialTexture() => compositeMaterial.SetTexture("_OutlineMaskTex", maskTexture);
