@@ -6,7 +6,6 @@ using System.Collections.Generic;
 [RequireComponent(typeof(Triggerable))]
 public sealed class DoorRuntime : MonoBehaviour
 {
-    [SerializeField, Required, TitleGroup("References")]
     private Triggerable triggerable;
 
     [SerializeField, Required, TitleGroup("References")]
@@ -39,17 +38,9 @@ public sealed class DoorRuntime : MonoBehaviour
     private Vector3 closedLocalPosition;
     private Quaternion closedLocalRotation;
 
-    private void Reset()
-    {
-        triggerable = GetComponent<Triggerable>();
-        visualRoot = transform;
-        CacheBlockingColliders();
-    }
-
     private void Awake()
     {
-        if (visualRoot == null)
-            visualRoot = transform;
+        triggerable = GetComponent<Triggerable>();
 
         closedLocalPosition = visualRoot.localPosition;
         closedLocalRotation = visualRoot.localRotation;
@@ -93,8 +84,7 @@ public sealed class DoorRuntime : MonoBehaviour
 
         if (immediate || transitionDuration <= 0f)
         {
-            visualRoot.localPosition = targetPosition;
-            visualRoot.localRotation = targetRotation;
+            visualRoot.SetLocalPositionAndRotation(targetPosition, targetRotation);
             return;
         }
 

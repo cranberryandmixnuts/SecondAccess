@@ -7,10 +7,7 @@ using UnityEngine;
 [RequireComponent(typeof(Trigger))]
 public sealed class ButtonRuntime : MonoBehaviour
 {
-    [SerializeField, Required, TitleGroup("References")]
     private Interactable interactable;
-
-    [SerializeField, Required, TitleGroup("References")]
     private Trigger trigger;
 
     [SerializeField, TitleGroup("Visual")]
@@ -35,33 +32,21 @@ public sealed class ButtonRuntime : MonoBehaviour
     private Vector3 releasedLocalPosition;
     private string sustainSourceKey;
 
-    private void Reset()
+    private void Awake()
     {
         interactable = GetComponent<Interactable>();
         trigger = GetComponent<Trigger>();
-        visualRoot = transform;
-    }
-
-    private void Awake()
-    {
-        if (visualRoot == null)
-            visualRoot = transform;
 
         releasedLocalPosition = visualRoot.localPosition;
         sustainSourceKey = GetInstanceID().ToString();
 
         interactable.InteractionStarted += OnInteractionStarted;
+        interactable.InteractionPerformed += OnInteractionPerformed;
         interactable.InteractionEnded += OnInteractionEnded;
         interactable.InteractionEnabledChanged += OnInteractionEnabledChanged;
     }
 
-    private void Start()
-    {
-        if (interactable.ExecutionType != InteractionExecutionType.Hold)
-            Debug.LogWarning($"{name}의 Interactable.ExecutionType은 Hold여야 합니다.", this);
-
-        UpdateVisualState(true);
-    }
+    private void Start() => UpdateVisualState(true);
 
     private void OnDisable()
     {
@@ -75,12 +60,16 @@ public sealed class ButtonRuntime : MonoBehaviour
     private void OnDestroy()
     {
         interactable.InteractionStarted -= OnInteractionStarted;
+        interactable.InteractionPerformed -= OnInteractionPerformed;
         interactable.InteractionEnded -= OnInteractionEnded;
         interactable.InteractionEnabledChanged -= OnInteractionEnabledChanged;
     }
 
     private void OnInteractionStarted(InteractionSource source)
     {
+        if (interactable.ExecutionType != InteractionExecutionType.Hold)
+            return;
+
         if (!activeSources.Add(source))
             return;
 
@@ -88,8 +77,20 @@ public sealed class ButtonRuntime : MonoBehaviour
         UpdateVisualState(false);
     }
 
+    private void OnInteractionPerformed(InteractionSource source)
+    {
+        if (interactable.ExecutionType != InteractionExecutionType.Instant)
+            return;
+
+        trigger.TriggerOnce();
+        PlayInstantPressPulse();
+    }
+
     private void OnInteractionEnded(InteractionSource source)
     {
+        if (interactable.ExecutionType != InteractionExecutionType.Hold)
+            return;
+
         if (!activeSources.Remove(source))
             return;
 
@@ -136,6 +137,27 @@ public sealed class ButtonRuntime : MonoBehaviour
             .DOLocalMove(targetPosition, pressTweenDuration)
             .SetEase(pressEase)
             .SetLink(gameObject);
+    }
+
+    private void PlayInstantPressPulse()
+    {
+        if (visualRoot == null)
+            return;
+
+        KillPressTween();
+
+        Vector3 pressedPosition = releasedLocalPosition + pressedLocalOffset;
+
+        if (pressTweenDuration <= 0f)
+        {
+            visualRoot.localPosition = releasedLocalPosition;
+            return;
+        }
+
+        Sequence sequence = DOTween.Sequence().SetLink(gameObject);
+        sequence.Append(visualRoot.DOLocalMove(pressedPosition, pressTweenDuration).SetEase(pressEase));
+        sequence.Append(visualRoot.DOLocalMove(releasedLocalPosition, pressTweenDuration).SetEase(pressEase));
+        pressTween = sequence;
     }
 
     private void KillPressTween()

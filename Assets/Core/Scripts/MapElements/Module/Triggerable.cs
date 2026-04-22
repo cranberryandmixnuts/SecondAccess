@@ -33,7 +33,9 @@ public sealed class Triggerable : MonoBehaviour
     public int SustainSourceCount => sustainSources.Count;
 
     [ShowInInspector, ReadOnly]
-    public bool IsTriggered => initialTriggered ^ LatchedTriggered ^ (sustainSources.Count > 0);
+    public bool IsTriggered => sustainSources.Count > 0
+        ? !initialTriggered
+        : initialTriggered ^ LatchedTriggered;
 
     public event Action<Triggerable, bool, bool> TriggerStateChanged;
 
