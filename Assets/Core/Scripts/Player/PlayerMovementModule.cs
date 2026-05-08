@@ -35,6 +35,7 @@ public sealed class PlayerMovementModule : PlayerModule
     public Vector3 MoveDirection { get; private set; }
     public Vector3 DesiredVelocity { get; private set; }
     public Vector3 PlanarVelocity => new(body.linearVelocity.x, 0f, body.linearVelocity.z);
+    public bool SimulationEnabled { get; private set; } = true;
 
     private void Reset()
     {
@@ -47,7 +48,9 @@ public sealed class PlayerMovementModule : PlayerModule
 
     private void Update()
     {
-        Input = InputManager.Instance.Move;
+        if (!SimulationEnabled)
+            return;
+
         MoveDirection = ResolveMoveDirection(Input);
         DesiredVelocity = MoveDirection * moveSpeed;
 
@@ -57,11 +60,34 @@ public sealed class PlayerMovementModule : PlayerModule
 
     private void FixedUpdate()
     {
+        if (!SimulationEnabled)
+            return;
+
         Vector3 currentPlanarVelocity = new(body.linearVelocity.x, 0f, body.linearVelocity.z);
         float deltaSpeed = DesiredVelocity.sqrMagnitude > currentPlanarVelocity.sqrMagnitude ? acceleration : deceleration;
         Vector3 nextPlanarVelocity = Vector3.MoveTowards(currentPlanarVelocity, DesiredVelocity, deltaSpeed * Time.fixedDeltaTime);
         body.linearVelocity = new Vector3(nextPlanarVelocity.x, body.linearVelocity.y, nextPlanarVelocity.z);
     }
+
+    public void SetInput(Vector2 input) => Input = Vector2.ClampMagnitude(input, 1f);
+
+    public void SetSimulationEnabled(bool enabled)
+    {
+        if (SimulationEnabled == enabled)
+            return;
+
+        SimulationEnabled = enabled;
+
+        if (SimulationEnabled)
+            return;
+
+        Input = Vector2.zero;
+        MoveDirection = Vector3.zero;
+        DesiredVelocity = Vector3.zero;
+        body.linearVelocity = new Vector3(0f, body.linearVelocity.y, 0f);
+    }
+
+    public void SetCameraTransform(Transform target) => cameraTransform = target;
 
     private Vector3 ResolveMoveDirection(Vector2 input)
     {
