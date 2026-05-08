@@ -1,11 +1,13 @@
 using System.Collections.Generic;
 using DG.Tweening;
 using Sirenix.OdinInspector;
+using Unity.Netcode;
 using UnityEngine;
 
+[RequireComponent(typeof(NetworkObject))]
 [RequireComponent(typeof(Interactable))]
 [RequireComponent(typeof(Trigger))]
-public sealed class ButtonRuntime : MonoBehaviour
+public sealed class ButtonRuntime : NetworkBehaviour
 {
     private Interactable interactable;
     private Trigger trigger;
@@ -22,23 +24,28 @@ public sealed class ButtonRuntime : MonoBehaviour
     [SerializeField, TitleGroup("Visual")]
     private Ease pressEase = Ease.OutQuad;
 
-    public bool IsPressed => activeSources.Count > 0;
+    public bool IsPressed => pressedSourceCount.Value > 0;
 
-    public int ActiveSourceCount => activeSources.Count;
+    public int ActiveSourceCount => pressedSourceCount.Value;
 
-    private readonly HashSet<InteractionSource> activeSources = new();
+    private readonly HashSet<ulong> activeClientIds = new();
+
+    private readonly NetworkVariable<int> pressedSourceCount = new(
+        0,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server
+    );
 
     private Tween pressTween;
     private Vector3 releasedLocalPosition;
-    private string sustainSourceKey;
 
     private void Awake()
     {
         interactable = GetComponent<Interactable>();
         trigger = GetComponent<Trigger>();
 
-        releasedLocalPosition = visualRoot.localPosition;
-        sustainSourceKey = GetInstanceID().ToString();
+        if (visualRoot != null)
+            releasedLocalPosition = visualRoot.localPosition;
 
         interactable.InteractionStarted += OnInteractionStarted;
         interactable.InteractionPerformed += OnInteractionPerformed;
@@ -48,17 +55,29 @@ public sealed class ButtonRuntime : MonoBehaviour
 
     private void Start() => UpdateVisualState(true);
 
+    public override void OnNetworkSpawn()
+    {
+        pressedSourceCount.OnValueChanged += OnPressedSourceCountChanged;
+        UpdateVisualState(true);
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        pressedSourceCount.OnValueChanged -= OnPressedSourceCountChanged;
+    }
+
     private void OnDisable()
     {
-        ReleaseAllSources();
         KillPressTween();
 
         if (visualRoot != null)
             visualRoot.localPosition = releasedLocalPosition;
     }
 
-    private void OnDestroy()
+    private new void OnDestroy()
     {
+        base.OnDestroy();
+
         interactable.InteractionStarted -= OnInteractionStarted;
         interactable.InteractionPerformed -= OnInteractionPerformed;
         interactable.InteractionEnded -= OnInteractionEnded;
@@ -70,11 +89,7 @@ public sealed class ButtonRuntime : MonoBehaviour
         if (interactable.ExecutionType != InteractionExecutionType.Hold)
             return;
 
-        if (!activeSources.Add(source))
-            return;
-
-        trigger.BeginSustain(source, sustainSourceKey);
-        UpdateVisualState(false);
+        RequestBeginHoldRpc();
     }
 
     private void OnInteractionPerformed(InteractionSource source)
@@ -82,8 +97,7 @@ public sealed class ButtonRuntime : MonoBehaviour
         if (interactable.ExecutionType != InteractionExecutionType.Instant)
             return;
 
-        trigger.TriggerOnce();
-        PlayInstantPressPulse();
+        RequestInstantPressRpc();
     }
 
     private void OnInteractionEnded(InteractionSource source)
@@ -91,11 +105,7 @@ public sealed class ButtonRuntime : MonoBehaviour
         if (interactable.ExecutionType != InteractionExecutionType.Hold)
             return;
 
-        if (!activeSources.Remove(source))
-            return;
-
-        trigger.EndSustain(source, sustainSourceKey);
-        UpdateVisualState(false);
+        RequestEndHoldRpc();
     }
 
     private void OnInteractionEnabledChanged(bool enabled)
@@ -103,19 +113,50 @@ public sealed class ButtonRuntime : MonoBehaviour
         if (enabled)
             return;
 
-        ReleaseAllSources();
+        if (IsSpawned)
+            RequestEndHoldRpc();
+    }
+
+    private void OnPressedSourceCountChanged(int previous, int current)
+    {
         UpdateVisualState(false);
     }
 
-    private void ReleaseAllSources()
+    [Rpc(SendTo.Server)]
+    private void RequestInstantPressRpc(RpcParams rpcParams = default)
     {
-        if (activeSources.Count == 0)
+        trigger.TriggerOnce();
+        PlayInstantPressPulseRpc();
+    }
+
+    [Rpc(SendTo.Server)]
+    private void RequestBeginHoldRpc(RpcParams rpcParams = default)
+    {
+        ulong clientId = rpcParams.Receive.SenderClientId;
+
+        if (!activeClientIds.Add(clientId))
             return;
 
-        foreach (InteractionSource source in activeSources)
-            trigger.EndSustain(source, sustainSourceKey);
+        pressedSourceCount.Value = activeClientIds.Count;
+        trigger.BeginSustain(this, clientId.ToString());
+    }
 
-        activeSources.Clear();
+    [Rpc(SendTo.Server)]
+    private void RequestEndHoldRpc(RpcParams rpcParams = default)
+    {
+        ulong clientId = rpcParams.Receive.SenderClientId;
+
+        if (!activeClientIds.Remove(clientId))
+            return;
+
+        pressedSourceCount.Value = activeClientIds.Count;
+        trigger.EndSustain(this, clientId.ToString());
+    }
+
+    [Rpc(SendTo.Everyone)]
+    private void PlayInstantPressPulseRpc()
+    {
+        PlayInstantPressPulse();
     }
 
     private void UpdateVisualState(bool immediate)

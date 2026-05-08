@@ -6,19 +6,18 @@ public sealed class PlayerInteractionModule : PlayerModule
     [SerializeField, Required, TitleGroup("References")]
     private InteractionSource interactionSource;
 
-    [SerializeField, Required, TitleGroup("References")]
-    private Camera interactionCamera;
-
     [SerializeField,TitleGroup("Raycast")]
     private LayerMask interactionMask = ~0;
 
     [SerializeField, MinValue(0f), TitleGroup("Raycast")]
     private float interactionDistance = 100f;
 
+    private Camera interactionCamera;
+
     public Interactable HoveredInteractable => interactionSource.HoveredInteractable;
     public Interactable ActiveInteractable => interactionSource.ActiveInteractable;
 
-    private void Reset()
+    private void Start()
     {
         interactionSource = GetComponentInChildren<InteractionSource>();
         interactionCamera = Camera.main;

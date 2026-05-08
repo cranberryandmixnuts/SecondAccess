@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using Sirenix.OdinInspector;
+using Unity.Netcode;
 using UnityEngine;
 
-public sealed class Triggerable : MonoBehaviour
+[RequireComponent(typeof(NetworkObject))]
+public sealed class Triggerable : NetworkBehaviour
 {
     private readonly struct SustainSourceId : IEquatable<SustainSourceId>
     {
@@ -33,17 +35,39 @@ public sealed class Triggerable : MonoBehaviour
     public int SustainSourceCount => sustainSources.Count;
 
     [ShowInInspector, ReadOnly]
-    public bool IsTriggered => sustainSources.Count > 0
-        ? !initialTriggered
-        : initialTriggered ^ LatchedTriggered;
+    public bool IsTriggered => IsSpawned ? networkTriggered.Value : ComputeLocalTriggered();
 
     public event Action<Triggerable, bool, bool> TriggerStateChanged;
 
     private readonly HashSet<SustainSourceId> sustainSources = new();
 
+    private readonly NetworkVariable<bool> networkTriggered = new(
+        false,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server
+    );
+
+    public override void OnNetworkSpawn()
+    {
+        networkTriggered.OnValueChanged += OnNetworkTriggeredChanged;
+
+        if (IsServer)
+            networkTriggered.Value = ComputeLocalTriggered();
+
+        TriggerStateChanged?.Invoke(this, !networkTriggered.Value, networkTriggered.Value);
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        networkTriggered.OnValueChanged -= OnNetworkTriggeredChanged;
+    }
+
     public void ApplySingleTrigger()
     {
-        bool previous = IsTriggered;
+        if (IsSpawned && !IsServer)
+            return;
+
+        bool previous = ComputeLocalTriggered();
         LatchedTriggered = !LatchedTriggered;
         RaiseIfChanged(previous);
     }
@@ -52,7 +76,10 @@ public sealed class Triggerable : MonoBehaviour
 
     public void BeginSustain(Component source, string sourceKey)
     {
-        bool previous = IsTriggered;
+        if (IsSpawned && !IsServer)
+            return;
+
+        bool previous = ComputeLocalTriggered();
         sustainSources.Add(CreateSourceId(source, sourceKey));
         RaiseIfChanged(previous);
     }
@@ -61,26 +88,51 @@ public sealed class Triggerable : MonoBehaviour
 
     public void EndSustain(Component source, string sourceKey)
     {
-        bool previous = IsTriggered;
+        if (IsSpawned && !IsServer)
+            return;
+
+        bool previous = ComputeLocalTriggered();
         sustainSources.Remove(CreateSourceId(source, sourceKey));
         RaiseIfChanged(previous);
     }
 
     public void ResetTriggerState()
     {
-        bool previous = IsTriggered;
+        if (IsSpawned && !IsServer)
+            return;
+
+        bool previous = ComputeLocalTriggered();
         LatchedTriggered = false;
         sustainSources.Clear();
         RaiseIfChanged(previous);
     }
 
+    private bool ComputeLocalTriggered()
+    {
+        if (sustainSources.Count > 0)
+            return !initialTriggered;
+
+        return initialTriggered ^ LatchedTriggered;
+    }
+
     private void RaiseIfChanged(bool previous)
     {
-        bool current = IsTriggered;
+        bool current = ComputeLocalTriggered();
 
         if (previous == current)
             return;
 
+        if (IsSpawned)
+        {
+            networkTriggered.Value = current;
+            return;
+        }
+
+        TriggerStateChanged?.Invoke(this, previous, current);
+    }
+
+    private void OnNetworkTriggeredChanged(bool previous, bool current)
+    {
         TriggerStateChanged?.Invoke(this, previous, current);
     }
 

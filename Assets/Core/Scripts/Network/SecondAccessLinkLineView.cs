@@ -10,6 +10,15 @@ public sealed class SecondAccessLinkLineView : MonoBehaviour
     [SerializeField, TitleGroup("References")]
     private SecondAccessLinkManager linkManager;
 
+    [SerializeField, TitleGroup("Material")]
+    private Material ropeMaterial;
+
+    [SerializeField, TitleGroup("Material")]
+    private Material energyMaterial;
+
+    [SerializeField, TitleGroup("Material")]
+    private bool generateLightingData;
+
     [SerializeField, TitleGroup("Visual")]
     private Color ropeColor = Color.white;
 
@@ -18,6 +27,8 @@ public sealed class SecondAccessLinkLineView : MonoBehaviour
 
     [SerializeField, MinValue(0f), TitleGroup("Visual")]
     private float width = 0.08f;
+
+    private MaterialPropertyBlock propertyBlock;
 
     private void Reset()
     {
@@ -32,10 +43,13 @@ public sealed class SecondAccessLinkLineView : MonoBehaviour
         if (linkManager == null)
             linkManager = SecondAccessLinkManager.Instance;
 
+        propertyBlock = new MaterialPropertyBlock();
+
         lineRenderer.useWorldSpace = true;
         lineRenderer.positionCount = 0;
         lineRenderer.startWidth = width;
         lineRenderer.endWidth = width;
+        lineRenderer.generateLightingData = generateLightingData;
     }
 
     private void Update()
@@ -49,7 +63,12 @@ public sealed class SecondAccessLinkLineView : MonoBehaviour
             return;
         }
 
-        Color color = linkManager.Mode.Value == SecondAccessLinkMode.Rope ? ropeColor : energyColor;
+        SecondAccessLinkMode mode = linkManager.Mode.Value;
+        Color color = mode == SecondAccessLinkMode.Rope ? ropeColor : energyColor;
+        Material material = mode == SecondAccessLinkMode.Rope ? ropeMaterial : energyMaterial;
+
+        if (material != null)
+            lineRenderer.sharedMaterial = material;
 
         lineRenderer.positionCount = 2;
         lineRenderer.SetPosition(0, start);
@@ -58,5 +77,11 @@ public sealed class SecondAccessLinkLineView : MonoBehaviour
         lineRenderer.endColor = color;
         lineRenderer.startWidth = width;
         lineRenderer.endWidth = width;
+        lineRenderer.generateLightingData = generateLightingData;
+
+        propertyBlock.Clear();
+        propertyBlock.SetColor("_BaseColor", color);
+        propertyBlock.SetColor("_Color", color);
+        lineRenderer.SetPropertyBlock(propertyBlock);
     }
 }

@@ -42,8 +42,10 @@ public sealed class SecondAccessLinkManager : NetworkBehaviour
 
     private void Awake() => Instance = this;
 
-    private void OnDestroy()
+    private new void OnDestroy()
     {
+        base.OnDestroy();
+
         if (Instance == this)
             Instance = null;
     }
@@ -121,17 +123,12 @@ public sealed class SecondAccessLinkManager : NetworkBehaviour
         if (Mode.Value == targetMode)
             return false;
 
-        switch (targetMode)
+        return targetMode switch
         {
-            case SecondAccessLinkMode.Rope:
-                return !HasRelayConnection;
-
-            case SecondAccessLinkMode.Energy:
-                return GetDirectDistance() <= energyMaxDistance;
-
-            default:
-                return false;
-        }
+            SecondAccessLinkMode.Rope => !HasRelayConnection,
+            SecondAccessLinkMode.Energy => GetDirectDistance() <= energyMaxDistance,
+            _ => false,
+        };
     }
 
     public bool TrySetMode(SecondAccessLinkMode targetMode)
@@ -228,7 +225,7 @@ public sealed class SecondAccessLinkManager : NetworkBehaviour
     private void ApplyRopePull(Rigidbody firstBody, Rigidbody secondBody, Vector3 direction, float distance, float softDistance)
     {
         float t = Mathf.InverseLerp(softDistance, ropeMaxDistance, Mathf.Min(distance, ropeMaxDistance));
-        Vector3 pullVelocity = direction * ropePullAcceleration * t * Time.fixedDeltaTime;
+        Vector3 pullVelocity = ropePullAcceleration * t * Time.fixedDeltaTime * direction;
 
         firstBody.linearVelocity = AddPlanarVelocity(firstBody.linearVelocity, pullVelocity);
         secondBody.linearVelocity = AddPlanarVelocity(secondBody.linearVelocity, -pullVelocity);
