@@ -3,7 +3,7 @@ using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using UnityEngine;
 
-public sealed class SecondAccessNetworkBootstrap : MonoBehaviour
+public sealed class NetworkBootstrap : MonoBehaviour
 {
     [SerializeField, TitleGroup("Connection")]
     private string address = "127.0.0.1";

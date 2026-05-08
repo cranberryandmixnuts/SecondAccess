@@ -5,7 +5,9 @@ using UnityEngine;
 [RequireComponent(typeof(NetworkObject))]
 [RequireComponent(typeof(Player))]
 [RequireComponent(typeof(Rigidbody))]
-public sealed class SecondAccessNetworkPlayer : NetworkBehaviour
+[RequireComponent(typeof(PlayerMovementModule))]
+[RequireComponent(typeof(PlayerInteractionModule))]
+public sealed class NetworkPlayer : NetworkBehaviour
 {
     [SerializeField, Required, TitleGroup("References")]
     private Player player;
@@ -58,13 +60,13 @@ public sealed class SecondAccessNetworkPlayer : NetworkBehaviour
         ApplyAuthorityState();
 
         if (IsServer)
-            SecondAccessLinkManager.Instance.RegisterPlayer(this);
+            LinkManager.Instance.RegisterPlayer(this);
     }
 
     public override void OnNetworkDespawn()
     {
         if (IsServer)
-            SecondAccessLinkManager.Instance.UnregisterPlayer(this);
+            LinkManager.Instance.UnregisterPlayer(this);
     }
 
     private void Update()

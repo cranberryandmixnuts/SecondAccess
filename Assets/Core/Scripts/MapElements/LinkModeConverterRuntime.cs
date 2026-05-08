@@ -7,7 +7,7 @@ using UnityEngine;
 public sealed class LinkModeConverterRuntime : NetworkBehaviour
 {
     [SerializeField, TitleGroup("Converter")]
-    private SecondAccessLinkMode targetMode = SecondAccessLinkMode.Rope;
+    private LinkMode targetMode = LinkMode.Rope;
 
     [SerializeField, Required, TitleGroup("References")]
     private Interactable interactable;
@@ -42,7 +42,7 @@ public sealed class LinkModeConverterRuntime : NetworkBehaviour
 
     private void RefreshAvailability()
     {
-        bool available = SecondAccessLinkManager.Instance != null && SecondAccessLinkManager.Instance.CanConvertTo(targetMode);
+        bool available = LinkManager.Instance != null && LinkManager.Instance.CanConvertTo(targetMode);
 
         if (availabilityInitialized && lastAvailability == available)
             return;
@@ -53,5 +53,5 @@ public sealed class LinkModeConverterRuntime : NetworkBehaviour
     }
 
     [Rpc(SendTo.Server)]
-    private void RequestConvertRpc() => SecondAccessLinkManager.Instance.TrySetMode(targetMode);
+    private void RequestConvertRpc() => LinkManager.Instance.TrySetMode(targetMode);
 }

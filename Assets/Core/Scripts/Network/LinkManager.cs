@@ -4,14 +4,14 @@ using UnityEngine;
 
 [DefaultExecutionOrder(-10000)]
 [RequireComponent(typeof(NetworkObject))]
-public sealed class SecondAccessLinkManager : NetworkBehaviour
+public sealed class LinkManager : NetworkBehaviour
 {
-    public static SecondAccessLinkManager Instance { get; private set; }
+    public static LinkManager Instance { get; private set; }
 
     private const ulong MissingNetworkObjectId = ulong.MaxValue;
 
     [SerializeField, TitleGroup("Initial State")]
-    private SecondAccessLinkMode initialMode = SecondAccessLinkMode.Rope;
+    private LinkMode initialMode = LinkMode.Rope;
 
     [SerializeField, MinValue(0.1f), TitleGroup("Rope")]
     private float ropeMaxDistance = 12f;
@@ -28,7 +28,7 @@ public sealed class SecondAccessLinkManager : NetworkBehaviour
     [SerializeField, TitleGroup("Debug")]
     private bool logRejectedConversion = true;
 
-    public NetworkVariable<SecondAccessLinkMode> Mode { get; } = new(SecondAccessLinkMode.Rope, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    public NetworkVariable<LinkMode> Mode { get; } = new(LinkMode.Rope, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     public NetworkVariable<ulong> FirstPlayerObjectId { get; } = new(MissingNetworkObjectId, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     public NetworkVariable<ulong> SecondPlayerObjectId { get; } = new(MissingNetworkObjectId, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     public NetworkVariable<ulong> RelayObjectId { get; } = new(MissingNetworkObjectId, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
@@ -64,10 +64,10 @@ public sealed class SecondAccessLinkManager : NetworkBehaviour
         if (!IsServer)
             return;
 
-        if (!TryGetPlayerObjects(out SecondAccessNetworkPlayer first, out SecondAccessNetworkPlayer second))
+        if (!TryGetPlayerObjects(out NetworkPlayer first, out NetworkPlayer second))
             return;
 
-        if (Mode.Value == SecondAccessLinkMode.Rope)
+        if (Mode.Value == LinkMode.Rope)
         {
             energyGameOverLogged = false;
             ApplyRopeConstraint(first, second);
@@ -77,7 +77,7 @@ public sealed class SecondAccessLinkManager : NetworkBehaviour
         EvaluateEnergyDistance(first, second);
     }
 
-    public void RegisterPlayer(SecondAccessNetworkPlayer player)
+    public void RegisterPlayer(NetworkPlayer player)
     {
         if (!IsServer)
             return;
@@ -103,7 +103,7 @@ public sealed class SecondAccessLinkManager : NetworkBehaviour
         NetworkManager.Singleton.DisconnectClient(player.OwnerClientId);
     }
 
-    public void UnregisterPlayer(SecondAccessNetworkPlayer player)
+    public void UnregisterPlayer(NetworkPlayer player)
     {
         if (!IsServer)
             return;
@@ -115,7 +115,7 @@ public sealed class SecondAccessLinkManager : NetworkBehaviour
             SecondPlayerObjectId.Value = MissingNetworkObjectId;
     }
 
-    public bool CanConvertTo(SecondAccessLinkMode targetMode)
+    public bool CanConvertTo(LinkMode targetMode)
     {
         if (!HasTwoPlayers)
             return false;
@@ -125,13 +125,13 @@ public sealed class SecondAccessLinkManager : NetworkBehaviour
 
         return targetMode switch
         {
-            SecondAccessLinkMode.Rope => !HasRelayConnection,
-            SecondAccessLinkMode.Energy => GetDirectDistance() <= energyMaxDistance,
+            LinkMode.Rope => !HasRelayConnection,
+            LinkMode.Energy => GetDirectDistance() <= energyMaxDistance,
             _ => false,
         };
     }
 
-    public bool TrySetMode(SecondAccessLinkMode targetMode)
+    public bool TrySetMode(LinkMode targetMode)
     {
         if (!IsServer)
             return false;
@@ -155,7 +155,7 @@ public sealed class SecondAccessLinkManager : NetworkBehaviour
         start = Vector3.zero;
         end = Vector3.zero;
 
-        if (!TryGetPlayerObjects(out SecondAccessNetworkPlayer first, out SecondAccessNetworkPlayer second))
+        if (!TryGetPlayerObjects(out NetworkPlayer first, out NetworkPlayer second))
             return false;
 
         start = first.transform.position;
@@ -171,14 +171,14 @@ public sealed class SecondAccessLinkManager : NetworkBehaviour
         return Vector3.Distance(start, end);
     }
 
-    private bool TryGetPlayerObjects(out SecondAccessNetworkPlayer first, out SecondAccessNetworkPlayer second)
+    private bool TryGetPlayerObjects(out NetworkPlayer first, out NetworkPlayer second)
     {
         bool hasFirst = TryGetNetworkPlayer(FirstPlayerObjectId.Value, out first);
         bool hasSecond = TryGetNetworkPlayer(SecondPlayerObjectId.Value, out second);
         return hasFirst && hasSecond;
     }
 
-    private bool TryGetNetworkPlayer(ulong objectId, out SecondAccessNetworkPlayer player)
+    private bool TryGetNetworkPlayer(ulong objectId, out NetworkPlayer player)
     {
         player = null;
 
@@ -191,7 +191,7 @@ public sealed class SecondAccessLinkManager : NetworkBehaviour
         return networkObject.TryGetComponent(out player);
     }
 
-    private void ApplyRopeConstraint(SecondAccessNetworkPlayer first, SecondAccessNetworkPlayer second)
+    private void ApplyRopeConstraint(NetworkPlayer first, NetworkPlayer second)
     {
         Rigidbody firstBody = first.Body;
         Rigidbody secondBody = second.Body;
@@ -249,7 +249,7 @@ public sealed class SecondAccessLinkManager : NetworkBehaviour
 
     private Vector3 AddPlanarVelocity(Vector3 velocity, Vector3 delta) => new(velocity.x + delta.x, velocity.y, velocity.z + delta.z);
 
-    private void EvaluateEnergyDistance(SecondAccessNetworkPlayer first, SecondAccessNetworkPlayer second)
+    private void EvaluateEnergyDistance(NetworkPlayer first, NetworkPlayer second)
     {
         float distance = Vector3.Distance(first.transform.position, second.transform.position);
 

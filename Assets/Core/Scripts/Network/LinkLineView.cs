@@ -2,13 +2,13 @@ using Sirenix.OdinInspector;
 using UnityEngine;
 
 [RequireComponent(typeof(LineRenderer))]
-public sealed class SecondAccessLinkLineView : MonoBehaviour
+public sealed class LinkLineView : MonoBehaviour
 {
     [SerializeField, Required, TitleGroup("References")]
     private LineRenderer lineRenderer;
 
     [SerializeField, TitleGroup("References")]
-    private SecondAccessLinkManager linkManager;
+    private LinkManager linkManager;
 
     [SerializeField, TitleGroup("Material")]
     private Material ropeMaterial;
@@ -33,7 +33,7 @@ public sealed class SecondAccessLinkLineView : MonoBehaviour
     private void Reset()
     {
         lineRenderer = GetComponent<LineRenderer>();
-        linkManager = FindAnyObjectByType<SecondAccessLinkManager>();
+        linkManager = FindAnyObjectByType<LinkManager>();
     }
 
     private void Awake()
@@ -41,7 +41,7 @@ public sealed class SecondAccessLinkLineView : MonoBehaviour
         lineRenderer = GetComponent<LineRenderer>();
 
         if (linkManager == null)
-            linkManager = SecondAccessLinkManager.Instance;
+            linkManager = LinkManager.Instance;
 
         propertyBlock = new MaterialPropertyBlock();
 
@@ -55,7 +55,7 @@ public sealed class SecondAccessLinkLineView : MonoBehaviour
     private void Update()
     {
         if (linkManager == null)
-            linkManager = SecondAccessLinkManager.Instance;
+            linkManager = LinkManager.Instance;
 
         if (linkManager == null || !linkManager.TryGetDirectLine(out Vector3 start, out Vector3 end))
         {
@@ -63,9 +63,9 @@ public sealed class SecondAccessLinkLineView : MonoBehaviour
             return;
         }
 
-        SecondAccessLinkMode mode = linkManager.Mode.Value;
-        Color color = mode == SecondAccessLinkMode.Rope ? ropeColor : energyColor;
-        Material material = mode == SecondAccessLinkMode.Rope ? ropeMaterial : energyMaterial;
+        LinkMode mode = linkManager.Mode.Value;
+        Color color = mode == LinkMode.Rope ? ropeColor : energyColor;
+        Material material = mode == LinkMode.Rope ? ropeMaterial : energyMaterial;
 
         if (material != null)
             lineRenderer.sharedMaterial = material;
