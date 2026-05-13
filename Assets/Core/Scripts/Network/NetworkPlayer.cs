@@ -1,3 +1,4 @@
+using System.Collections;
 using Sirenix.OdinInspector;
 using Unity.Netcode;
 using UnityEngine;
@@ -38,6 +39,7 @@ public sealed class NetworkPlayer : NetworkBehaviour
 
     private Vector2 lastSentInput;
     private float lastInputSendTime;
+    private Coroutine registrationRoutine;
 
     private void Reset()
     {
@@ -60,12 +62,14 @@ public sealed class NetworkPlayer : NetworkBehaviour
         ApplyAuthorityState();
 
         if (IsServer)
-            LinkManager.Instance.RegisterPlayer(this);
+            StartRegistration();
     }
 
     public override void OnNetworkDespawn()
     {
-        if (IsServer)
+        StopRegistration();
+
+        if (IsServer && LinkManager.Instance != null)
             LinkManager.Instance.UnregisterPlayer(this);
     }
 
@@ -95,6 +99,33 @@ public sealed class NetworkPlayer : NetworkBehaviour
             return;
 
         PlayerSlot.Value = slot;
+    }
+
+    private void StartRegistration()
+    {
+        StopRegistration();
+        registrationRoutine = StartCoroutine(RegisterWhenLinkManagerAvailable());
+    }
+
+    private void StopRegistration()
+    {
+        if (registrationRoutine == null)
+            return;
+
+        StopCoroutine(registrationRoutine);
+        registrationRoutine = null;
+    }
+
+    private IEnumerator RegisterWhenLinkManagerAvailable()
+    {
+        while (IsSpawned && LinkManager.Instance == null)
+            yield return null;
+
+        if (!IsSpawned)
+            yield break;
+
+        LinkManager.Instance.RegisterPlayer(this);
+        registrationRoutine = null;
     }
 
     private void ApplyAuthorityState()

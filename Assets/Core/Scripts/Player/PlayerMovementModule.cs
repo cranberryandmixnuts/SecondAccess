@@ -16,12 +16,6 @@ public sealed class PlayerMovementModule : PlayerModule
     [SerializeField, MinValue(0f), TitleGroup("Movement")]
     private float moveSpeed = 10f;
 
-    [SerializeField, MinValue(0f), TitleGroup("Movement")]
-    private float acceleration = 30f;
-
-    [SerializeField, MinValue(0f), TitleGroup("Movement")]
-    private float deceleration = 40f;
-
     [SerializeField, TitleGroup("Movement")]
     private bool useCameraRelativeMovement;
 
@@ -42,44 +36,35 @@ public sealed class PlayerMovementModule : PlayerModule
         body = GetComponent<Rigidbody>();
         rotationRoot = transform;
 
-        if (Camera.main != null)
-            cameraTransform = Camera.main.transform;
+        if (Camera.main != null) cameraTransform = Camera.main.transform;
     }
 
     private void Update()
     {
-        if (!SimulationEnabled)
-            return;
+        if (!SimulationEnabled) return;
 
         MoveDirection = ResolveMoveDirection(Input);
         DesiredVelocity = MoveDirection * moveSpeed;
 
-        if (rotateToMovement)
-            UpdateRotation(Time.deltaTime);
+        if (rotateToMovement) UpdateRotation(Time.deltaTime);
     }
 
     private void FixedUpdate()
     {
-        if (!SimulationEnabled)
-            return;
+        if (!SimulationEnabled) return;
 
-        Vector3 currentPlanarVelocity = new(body.linearVelocity.x, 0f, body.linearVelocity.z);
-        float deltaSpeed = DesiredVelocity.sqrMagnitude > currentPlanarVelocity.sqrMagnitude ? acceleration : deceleration;
-        Vector3 nextPlanarVelocity = Vector3.MoveTowards(currentPlanarVelocity, DesiredVelocity, deltaSpeed * Time.fixedDeltaTime);
-        body.linearVelocity = new Vector3(nextPlanarVelocity.x, body.linearVelocity.y, nextPlanarVelocity.z);
+        body.linearVelocity = new Vector3(DesiredVelocity.x, body.linearVelocity.y, DesiredVelocity.z);
     }
 
     public void SetInput(Vector2 input) => Input = Vector2.ClampMagnitude(input, 1f);
 
     public void SetSimulationEnabled(bool enabled)
     {
-        if (SimulationEnabled == enabled)
-            return;
+        if (SimulationEnabled == enabled) return;
 
         SimulationEnabled = enabled;
 
-        if (SimulationEnabled)
-            return;
+        if (SimulationEnabled) return;
 
         Input = Vector2.zero;
         MoveDirection = Vector3.zero;
@@ -108,8 +93,7 @@ public sealed class PlayerMovementModule : PlayerModule
             direction = new Vector3(input.x, 0f, input.y);
         }
 
-        if (direction.sqrMagnitude > 1f)
-            direction.Normalize();
+        if (direction.sqrMagnitude > 1f) direction.Normalize();
 
         return direction;
     }
@@ -119,8 +103,7 @@ public sealed class PlayerMovementModule : PlayerModule
         Transform target = rotationRoot != null ? rotationRoot : transform;
         Vector3 direction = MoveDirection;
 
-        if (direction.sqrMagnitude <= 0.0001f)
-            return;
+        if (direction.sqrMagnitude <= 0.0001f) return;
 
         Quaternion targetRotation = Quaternion.LookRotation(direction, Vector3.up);
         target.rotation = Quaternion.RotateTowards(target.rotation, targetRotation, rotationSpeed * deltaTime);
