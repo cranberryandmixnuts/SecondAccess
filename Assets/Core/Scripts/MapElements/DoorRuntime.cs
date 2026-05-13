@@ -1,12 +1,14 @@
 using DG.Tweening;
 using Sirenix.OdinInspector;
-using UnityEngine;
 using System.Collections.Generic;
+using Unity.Netcode;
+using UnityEngine;
 
-[RequireComponent(typeof(Triggerable))]
+[RequireComponent(typeof(NetworkObject))]
+[RequireComponent(typeof(TriggerTarget))]
 public sealed class DoorRuntime : MonoBehaviour
 {
-    private Triggerable triggerable;
+    private TriggerTarget triggerable;
 
     [SerializeField, Required, TitleGroup("References")]
     private Transform visualRoot;
@@ -40,7 +42,7 @@ public sealed class DoorRuntime : MonoBehaviour
 
     private void Awake()
     {
-        triggerable = GetComponent<Triggerable>();
+        triggerable = GetComponent<TriggerTarget>();
 
         closedLocalPosition = visualRoot.localPosition;
         closedLocalRotation = visualRoot.localRotation;
@@ -61,7 +63,7 @@ public sealed class DoorRuntime : MonoBehaviour
         KillTransitionSequence();
     }
 
-    private void OnTriggerStateChanged(Triggerable _, bool previous, bool current) => ApplyState(current, false);
+    private void OnTriggerStateChanged(TriggerTarget _, bool previous, bool current) => ApplyState(current, false);
 
     private void ApplyState(bool triggered, bool immediate)
     {

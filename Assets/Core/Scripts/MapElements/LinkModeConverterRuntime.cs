@@ -6,19 +6,16 @@ using UnityEngine;
 [RequireComponent(typeof(Interactable))]
 public sealed class LinkModeConverterRuntime : NetworkBehaviour
 {
+    private Interactable interactable;
+
     [SerializeField, TitleGroup("Converter")]
     private LinkMode targetMode = LinkMode.Rope;
-
-    [SerializeField, Required, TitleGroup("References")]
-    private Interactable interactable;
 
     [SerializeField, TitleGroup("Availability")]
     private bool updateInteractableAvailability = true;
 
     private bool availabilityInitialized;
     private bool lastAvailability;
-
-    private void Reset() => interactable = GetComponent<Interactable>();
 
     private void Awake() => interactable = GetComponent<Interactable>();
 

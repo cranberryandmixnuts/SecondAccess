@@ -1,43 +1,22 @@
-using System.Collections.Generic;
-using Sirenix.OdinInspector;
+using Unity.Netcode;
 using UnityEngine;
-[DefaultExecutionOrder(-20000)]
 
 [RequireComponent(typeof(PlayerMovementModule))]
 [RequireComponent(typeof(PlayerInteractionModule))]
-public sealed class Player : MonoBehaviour
+public sealed class Player : NetworkBehaviour
 {
-    [HideInInspector]
+    public Camera Camera { get; private set; }
+    [field: SerializeField] public Rigidbody Body { get; private set; }
+    [field: SerializeField] public Collider Collider { get; private set; }
+
     public PlayerMovementModule Movement { get; private set; }
-
-    [HideInInspector]
     public PlayerInteractionModule Interaction { get; private set; }
-
-    public IReadOnlyList<PlayerModule> Modules => modules;
-
-    private readonly List<PlayerModule> modules = new();
-
-    private void Reset() => CacheModules();
 
     private void Awake()
     {
-        CacheModules();
-        BindModules();
-    }
+        Camera = Camera.main;
 
-    public T GetModule<T>() where T : PlayerModule => GetComponent<T>();
-
-    private void CacheModules()
-    {
-        modules.Clear();
-        GetComponents(modules);
         Movement = GetComponent<PlayerMovementModule>();
         Interaction = GetComponent<PlayerInteractionModule>();
-    }
-
-    private void BindModules()
-    {
-        for (int i = 0; i < modules.Count; i++)
-            modules[i].Initialize(this);
     }
 }

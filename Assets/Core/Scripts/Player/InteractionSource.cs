@@ -137,6 +137,6 @@ public sealed class InteractionSource : MonoBehaviour
         if (!overlapCounts.ContainsKey(interactable))
             return false;
 
-        return interactable.CanHover(this);
+        return interactable.CanHover();
     }
 }

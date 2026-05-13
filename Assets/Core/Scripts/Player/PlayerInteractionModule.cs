@@ -12,20 +12,12 @@ public sealed class PlayerInteractionModule : PlayerModule
     [SerializeField, MinValue(0f), TitleGroup("Raycast")]
     private float interactionDistance = 100f;
 
-    private Camera interactionCamera;
-
     public Interactable HoveredInteractable => interactionSource.HoveredInteractable;
     public Interactable ActiveInteractable => interactionSource.ActiveInteractable;
 
-    private void Start()
-    {
-        interactionSource = GetComponentInChildren<InteractionSource>();
-        interactionCamera = Camera.main;
-    }
-
     private void Update()
     {
-        interactionSource.RefreshHovered(interactionCamera, interactionMask, interactionDistance);
+        interactionSource.RefreshHovered(Player.Camera, interactionMask, interactionDistance);
 
         if (!InputManager.Instance.InterActionHeld)
             interactionSource.EndActiveInteraction();
@@ -33,8 +25,6 @@ public sealed class PlayerInteractionModule : PlayerModule
         if (InputManager.Instance.InterActionDown)
             interactionSource.TryStartCurrentInteraction();
     }
-
-    public void SetInteractionCamera(Camera targetCamera) => interactionCamera = targetCamera;
 
     public void ForceEndInteraction() => interactionSource.EndActiveInteraction();
 }

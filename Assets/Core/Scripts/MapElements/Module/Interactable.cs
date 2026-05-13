@@ -61,11 +61,11 @@ public sealed class Interactable : MonoBehaviour
         interactingSources.Clear();
     }
 
-    public bool CanHover(InteractionSource source) => interactionEnabled && isActiveAndEnabled;
+    public bool CanHover() => interactionEnabled && isActiveAndEnabled;
 
     public bool CanInteract(InteractionSource source)
     {
-        if (!CanHover(source))
+        if (!CanHover())
             return false;
 
         if (allowMultipleInteractors)

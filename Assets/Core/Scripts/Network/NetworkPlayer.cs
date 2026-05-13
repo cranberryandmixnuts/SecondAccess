@@ -29,7 +29,7 @@ public sealed class NetworkPlayer : NetworkBehaviour
     private GameObject[] ownerOnlyObjects;
 
     [SerializeField, MinValue(0.01f), TitleGroup("Network Input")]
-    private float inputSendInterval = 0.033f;
+    private float inputSendInterval = 0.01f;
 
     public NetworkVariable<int> PlayerSlot { get; } = new(-1, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 

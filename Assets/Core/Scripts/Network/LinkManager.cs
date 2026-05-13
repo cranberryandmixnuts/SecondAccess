@@ -1,13 +1,17 @@
+using System;
 using Sirenix.OdinInspector;
 using Unity.Netcode;
 using UnityEngine;
 
-[DefaultExecutionOrder(10000)]
-[RequireComponent(typeof(NetworkObject))]
-public sealed class LinkManager : NetworkBehaviour
+public enum LinkMode : byte
 {
-    public static LinkManager Instance { get; private set; }
+    Rope,
+    Energy
+}
 
+[RequireComponent(typeof(NetworkObject))]
+public sealed class LinkManager : NetworkSingleton<LinkManager, SceneScope>
+{
     private const ulong MissingNetworkObjectId = ulong.MaxValue;
 
     [SerializeField, TitleGroup("Initial State")]
@@ -56,17 +60,7 @@ public sealed class LinkManager : NetworkBehaviour
 
     private bool energyGameOverLogged;
 
-    private void Awake() => Instance = this;
-
-    private new void OnDestroy()
-    {
-        base.OnDestroy();
-
-        if (Instance == this)
-            Instance = null;
-    }
-
-    public override void OnNetworkSpawn()
+    protected override void NetworkSingletonOnNetworkSpawn()
     {
         if (!IsServer)
             return;
@@ -210,13 +204,10 @@ public sealed class LinkManager : NetworkBehaviour
         if (HasTwoPlayers)
             return;
 
-        NetworkPlayer[] players = FindObjectsByType<NetworkPlayer>(FindObjectsInactive.Exclude, FindObjectsSortMode.InstanceID);
+        NetworkPlayer[] players = FindSpawnedPlayers();
 
         for (int i = 0; i < players.Length; i++)
         {
-            if (!players[i].IsSpawned)
-                continue;
-
             RegisterPlayer(players[i]);
 
             if (HasTwoPlayers)
@@ -272,25 +263,38 @@ public sealed class LinkManager : NetworkBehaviour
         first = null;
         second = null;
 
-        NetworkPlayer[] players = FindObjectsByType<NetworkPlayer>(FindObjectsInactive.Exclude, FindObjectsSortMode.InstanceID);
+        NetworkPlayer[] players = FindSpawnedPlayers();
+
+        if (players.Length < 2)
+            return false;
+
+        first = players[0];
+        second = players[1];
+        return true;
+    }
+
+    private NetworkPlayer[] FindSpawnedPlayers()
+    {
+        NetworkPlayer[] players = FindObjectsByType<NetworkPlayer>(FindObjectsInactive.Exclude);
+        int spawnedCount = 0;
 
         for (int i = 0; i < players.Length; i++)
         {
             if (!players[i].IsSpawned)
                 continue;
 
-            if (first == null)
-            {
-                first = players[i];
-                continue;
-            }
-
-            second = players[i];
-            return true;
+            players[spawnedCount] = players[i];
+            spawnedCount++;
         }
 
-        return false;
+        if (spawnedCount != players.Length)
+            Array.Resize(ref players, spawnedCount);
+
+        Array.Sort(players, CompareNetworkPlayersByNetworkObjectId);
+        return players;
     }
+
+    private int CompareNetworkPlayersByNetworkObjectId(NetworkPlayer x, NetworkPlayer y) => x.NetworkObjectId.CompareTo(y.NetworkObjectId);
 
     private int GetRegisteredPlayerCount()
     {
@@ -456,13 +460,13 @@ public sealed class LinkManager : NetworkBehaviour
 
         energyGameOverLogged = true;
 
-        Debug.Log($"[SecondAccess] Energy link exceeded max distance. GameOver placeholder. Distance={distance:0.00}, Max={energyMaxDistance:0.00}");
+        Debug.Log($"Energy link exceeded max distance. GameOver placeholder. Distance={distance:0.00}, Max={energyMaxDistance:0.00}");
         ReportEnergyGameOverRpc(distance, energyMaxDistance);
     }
 
     [Rpc(SendTo.NotServer)]
     private void ReportEnergyGameOverRpc(float distance, float maxDistance)
     {
-        Debug.Log($"[SecondAccess] Energy link exceeded max distance. GameOver placeholder. Distance={distance:0.00}, Max={maxDistance:0.00}");
+        Debug.Log($"Energy link exceeded max distance. GameOver placeholder. Distance={distance:0.00}, Max={maxDistance:0.00}");
     }
 }

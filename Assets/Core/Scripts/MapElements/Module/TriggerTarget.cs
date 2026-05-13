@@ -5,20 +5,20 @@ using Unity.Netcode;
 using UnityEngine;
 
 [RequireComponent(typeof(NetworkObject))]
-public sealed class Triggerable : NetworkBehaviour
+public sealed class TriggerTarget : NetworkBehaviour
 {
     private readonly struct SustainSourceId : IEquatable<SustainSourceId>
     {
-        public SustainSourceId(int ownerId, string key)
+        public SustainSourceId(EntityId ownerId, string key)
         {
             OwnerId = ownerId;
             Key = key;
         }
 
-        public int OwnerId { get; }
+        public EntityId OwnerId { get; }
         public string Key { get; }
 
-        public bool Equals(SustainSourceId other) => OwnerId == other.OwnerId && Key == other.Key;
+        public bool Equals(SustainSourceId other) => OwnerId.Equals(other.OwnerId) && Key == other.Key;
 
         public override bool Equals(object obj) => obj is SustainSourceId other && Equals(other);
 
@@ -37,7 +37,7 @@ public sealed class Triggerable : NetworkBehaviour
     [ShowInInspector, ReadOnly]
     public bool IsTriggered => IsSpawned ? networkTriggered.Value : ComputeLocalTriggered();
 
-    public event Action<Triggerable, bool, bool> TriggerStateChanged;
+    public event Action<TriggerTarget, bool, bool> TriggerStateChanged;
 
     private readonly HashSet<SustainSourceId> sustainSources = new();
 
@@ -141,6 +141,6 @@ public sealed class Triggerable : NetworkBehaviour
         if (source == null)
             throw new ArgumentNullException(nameof(source));
 
-        return new SustainSourceId(source.GetInstanceID(), sourceKey ?? string.Empty);
+        return new SustainSourceId(source.GetEntityId(), sourceKey ?? string.Empty);
     }
 }

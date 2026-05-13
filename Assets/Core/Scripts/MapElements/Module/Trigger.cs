@@ -5,15 +5,15 @@ using UnityEngine;
 public sealed class Trigger : MonoBehaviour
 {
     [SerializeField]
-    private List<Triggerable> targets = new();
+    private List<TriggerTarget> targets = new();
 
-    public IReadOnlyList<Triggerable> Targets => targets;
+    public IReadOnlyList<TriggerTarget> Targets => targets;
 
     public void TriggerOnce()
     {
         for (int i = 0; i < targets.Count; i++)
         {
-            Triggerable target = targets[i];
+            TriggerTarget target = targets[i];
 
             if (target == null)
                 continue;
@@ -28,7 +28,7 @@ public sealed class Trigger : MonoBehaviour
     {
         for (int i = 0; i < targets.Count; i++)
         {
-            Triggerable target = targets[i];
+            TriggerTarget target = targets[i];
 
             if (target == null)
                 continue;
@@ -43,7 +43,7 @@ public sealed class Trigger : MonoBehaviour
     {
         for (int i = 0; i < targets.Count; i++)
         {
-            Triggerable target = targets[i];
+            TriggerTarget target = targets[i];
 
             if (target == null)
                 continue;

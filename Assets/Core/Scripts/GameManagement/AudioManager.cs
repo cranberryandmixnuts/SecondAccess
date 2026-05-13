@@ -53,16 +53,16 @@ public class AudioManager : Singleton<AudioManager, GlobalScope>
 
     private readonly struct LoopSlotKey : IEquatable<LoopSlotKey>
     {
-        public int OwnerId { get; }
+        public EntityId OwnerId { get; }
         public string Slot { get; }
 
-        public LoopSlotKey(int ownerId, string slot)
+        public LoopSlotKey(EntityId ownerId, string slot)
         {
             OwnerId = ownerId;
             Slot = slot;
         }
 
-        public bool Equals(LoopSlotKey other) => OwnerId == other.OwnerId && Slot == other.Slot;
+        public bool Equals(LoopSlotKey other) => OwnerId.Equals(other.OwnerId) && Slot == other.Slot;
 
         public override bool Equals(object obj) => obj is LoopSlotKey other && Equals(other);
 
@@ -276,7 +276,7 @@ public class AudioManager : Singleton<AudioManager, GlobalScope>
     {
         EnsureRuntimeInitialized();
 
-        int ownerId = GetOwnerId(parent);
+        EntityId ownerId = GetOwnerId(parent);
 
         for (int i = 0; i < sfxVoices.Count; i++)
         {
@@ -286,7 +286,7 @@ public class AudioManager : Singleton<AudioManager, GlobalScope>
             if (!voice.IsActive)
                 continue;
 
-            if (GetOwnerId(voice.Owner) != ownerId)
+            if (!GetOwnerId(voice.Owner).Equals(ownerId))
                 continue;
 
             StopVoice(voice, fadeDuration);
@@ -537,7 +537,7 @@ public class AudioManager : Singleton<AudioManager, GlobalScope>
 
         RepairVoiceIfNeeded(voice);
 
-        if (voice.IsActive && voice.IsLoop && voice.Slot == slot && GetOwnerId(voice.Owner) == GetOwnerId(parent))
+        if (voice.IsActive && voice.IsLoop && voice.Slot == slot && GetOwnerId(voice.Owner).Equals(GetOwnerId(parent)))
             return true;
 
         activeLoopVoiceIdsBySlot.Remove(key);
@@ -808,5 +808,5 @@ public class AudioManager : Singleton<AudioManager, GlobalScope>
         return fallback;
     }
 
-    private int GetOwnerId(GameObject owner) => owner != null ? owner.GetInstanceID() : 0;
+    private EntityId GetOwnerId(GameObject owner) => owner != null ? owner.GetEntityId() : EntityId.None;
 }

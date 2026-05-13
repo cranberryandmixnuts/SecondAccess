@@ -119,43 +119,6 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!84 &255429656
-RenderTexture:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: _OutlineMaskRT
-  m_ImageContentsHash:
-    serializedVersion: 2
-    Hash: 00000000000000000000000000000000
-  m_IsAlphaChannelOptional: 0
-  serializedVersion: 6
-  m_Width: 3840
-  m_Height: 2160
-  m_AntiAliasing: 1
-  m_MipCount: -1
-  m_DepthStencilFormat: 94
-  m_ColorFormat: 5
-  m_MipMap: 0
-  m_GenerateMips: 0
-  m_SRGB: 0
-  m_UseDynamicScale: 0
-  m_UseDynamicScaleExplicit: 0
-  m_BindMS: 0
-  m_EnableCompatibleFormat: 1
-  m_EnableRandomWrite: 0
-  m_TextureSettings:
-    serializedVersion: 2
-    m_FilterMode: 0
-    m_Aniso: 1
-    m_MipBias: 0
-    m_WrapU: 1
-    m_WrapV: 1
-    m_WrapW: 1
-  m_Dimension: 2
-  m_VolumeDepth: 1
-  m_ShadowSamplingMode: 2
 --- !u!1 &324922438
 GameObject:
   m_ObjectHideFlags: 0
@@ -259,7 +222,7 @@ Camera:
     serializedVersion: 2
     m_Bits: 128
   m_RenderingPath: -1
-  m_TargetTexture: {fileID: 255429656}
+  m_TargetTexture: {fileID: 1378994680}
   m_TargetDisplay: 0
   m_TargetEye: 3
   m_HDR: 0
@@ -319,7 +282,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LinkModeConverterRuntime
   ShowTopMostFoldoutHeaderGroup: 1
   targetMode: 0
-  interactable: {fileID: 362521455}
   updateInteractableAvailability: 1
 --- !u!114 &362521455
 MonoBehaviour:
@@ -1098,7 +1060,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LinkModeConverterRuntime
   ShowTopMostFoldoutHeaderGroup: 1
   targetMode: 1
-  interactable: {fileID: 917828141}
   updateInteractableAvailability: 1
 --- !u!114 &917828141
 MonoBehaviour:
@@ -1432,6 +1393,43 @@ MonoBehaviour:
   maskCamera: {fileID: 324922441}
   compositeMaterial: {fileID: 2100000, guid: 3790a58c71da4574ea9d4a3d5d5d4d8c, type: 2}
   depthBufferBits: 24
+--- !u!84 &1378994680
+RenderTexture:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: _OutlineMaskRT
+  m_ImageContentsHash:
+    serializedVersion: 2
+    Hash: 00000000000000000000000000000000
+  m_IsAlphaChannelOptional: 0
+  serializedVersion: 6
+  m_Width: 3840
+  m_Height: 2160
+  m_AntiAliasing: 1
+  m_MipCount: -1
+  m_DepthStencilFormat: 94
+  m_ColorFormat: 5
+  m_MipMap: 0
+  m_GenerateMips: 0
+  m_SRGB: 0
+  m_UseDynamicScale: 0
+  m_UseDynamicScaleExplicit: 0
+  m_BindMS: 0
+  m_EnableCompatibleFormat: 1
+  m_EnableRandomWrite: 0
+  m_TextureSettings:
+    serializedVersion: 2
+    m_FilterMode: 0
+    m_Aniso: 1
+    m_MipBias: 0
+    m_WrapU: 1
+    m_WrapV: 1
+    m_WrapW: 1
+  m_Dimension: 2
+  m_VolumeDepth: 1
+  m_ShadowSamplingMode: 2
 --- !u!1 &1380008310
 GameObject:
   m_ObjectHideFlags: 0
@@ -2233,19 +2231,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SecondAccessLinkLineView
   lineRenderer: {fileID: 2037916741}
-  linkManager: {fileID: 2139159024}
-  debugStart: {fileID: 0}
-  debugEnd: {fileID: 0}
-  drawDebugLineWhenUnavailable: 1
-  debugLineLength: 3
-  logUnavailableReason: 1
-  ropeMaterial: {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
-  energyMaterial: {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
-  generateLightingData: 0
   ropeColor: {r: 1, g: 0.6518388, b: 0, a: 1}
   energyColor: {r: 0, g: 1, b: 1, a: 1}
-  width: 1
-  heightOffset: 0.25
+  width: 0.5
+  heightOffset: 0
   capVertices: 4
 --- !u!120 &2037916741
 LineRenderer:
@@ -2272,7 +2261,8 @@ LineRenderer:
   m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
-  m_Materials: []
+  m_Materials:
+  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0

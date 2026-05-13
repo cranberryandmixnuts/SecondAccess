@@ -1,19 +1,15 @@
 using UnityEngine;
 
+[RequireComponent(typeof(Player))]
 public abstract class PlayerModule : MonoBehaviour
 {
-    public Player Player { get; private set; }
+    protected Player Player;
 
-    public bool IsInitialized => Player != null;
-
-    public void Initialize(Player player)
+    protected virtual void Awake()
     {
-        if (Player == player)
-            return;
-
-        Player = player;
-        OnInitialized();
+        Player = GetComponent<Player>();
+        ModuleAwake();
     }
 
-    protected virtual void OnInitialized() { }
+    protected virtual void ModuleAwake() { }
 }
