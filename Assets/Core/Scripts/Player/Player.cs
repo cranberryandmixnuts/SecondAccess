@@ -6,6 +6,7 @@ using UnityEngine;
 public sealed class Player : NetworkBehaviour
 {
     public Camera Camera { get; private set; }
+
     [field: SerializeField] public Rigidbody Body { get; private set; }
     [field: SerializeField] public Collider Collider { get; private set; }
 
@@ -18,5 +19,45 @@ public sealed class Player : NetworkBehaviour
 
         Movement = GetComponent<PlayerMovementModule>();
         Interaction = GetComponent<PlayerInteractionModule>();
+    }
+
+    public override void OnNetworkSpawn()
+    {
+        Movement.ApplyNetworkState();
+        Interaction.SetInputEnabled(IsOwner);
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        Movement.ApplyLocalState();
+        Interaction.SetInputEnabled(true);
+    }
+
+    public void SetMovementInput(Vector2 input)
+    {
+        Vector2 clampedInput = Vector2.ClampMagnitude(input, 1f);
+
+        if (!IsSpawned)
+        {
+            Movement.ApplyInputFromNetwork(clampedInput);
+            return;
+        }
+
+        if (IsServer)
+        {
+            Movement.ApplyInputFromNetwork(clampedInput);
+            return;
+        }
+
+        if (!IsOwner)
+            return;
+
+        SetMovementInputServerRpc(clampedInput);
+    }
+
+    [ServerRpc]
+    private void SetMovementInputServerRpc(Vector2 input)
+    {
+        Movement.ApplyInputFromNetwork(Vector2.ClampMagnitude(input, 1f));
     }
 }

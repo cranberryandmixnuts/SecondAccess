@@ -16,49 +16,65 @@ public sealed class PlayerMovementModule : PlayerModule
     public Vector3 PlanarVelocity => new(Player.Body.linearVelocity.x, 0f, Player.Body.linearVelocity.z);
     public bool SimulationEnabled { get; private set; } = true;
 
-    private void Update()
+    private bool ShouldSimulate => !Player.IsSpawned || Player.IsServer;
+
+    private void FixedUpdate()
     {
-        if (!SimulationEnabled) return;
+        if (!SimulationEnabled)
+            return;
+
+        if (!ShouldSimulate)
+            return;
 
         MoveDirection = ResolveMoveDirection(Input);
         DesiredVelocity = MoveDirection * moveSpeed;
 
-        Vector3 direction = MoveDirection;
-        if (direction.sqrMagnitude <= 0.0001f) return;
-        Quaternion targetRotation = Quaternion.LookRotation(direction, Vector3.up);
-
-        Debug.Log(Quaternion.RotateTowards(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime));
-        transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
-    }
-
-    private void FixedUpdate()
-    {
-        if (!SimulationEnabled) return;
-
         Player.Body.linearVelocity = new Vector3(DesiredVelocity.x, Player.Body.linearVelocity.y, DesiredVelocity.z);
+
+        if (MoveDirection.sqrMagnitude <= 0.0001f)
+            return;
+
+        Quaternion targetRotation = Quaternion.LookRotation(MoveDirection, Vector3.up);
+        Quaternion nextRotation = Quaternion.RotateTowards(Player.Body.rotation, targetRotation, rotationSpeed * Time.fixedDeltaTime);
+
+        Player.Body.MoveRotation(nextRotation);
     }
 
-    public void SetInput(Vector2 input) => Input = Vector2.ClampMagnitude(input, 1f);
+    public void SetInput(Vector2 input) => Player.SetMovementInput(input);
+
+    internal void ApplyInputFromNetwork(Vector2 input) => Input = Vector2.ClampMagnitude(input, 1f);
+
+    public void ApplyNetworkState()
+    {
+        Player.Body.isKinematic = Player.IsSpawned && !Player.IsServer;
+    }
+
+    public void ApplyLocalState()
+    {
+        Player.Body.isKinematic = false;
+    }
 
     public void SetSimulationEnabled(bool enabled)
     {
-        if (SimulationEnabled == enabled) return;
+        if (SimulationEnabled == enabled)
+            return;
 
         SimulationEnabled = enabled;
 
-        if (SimulationEnabled) return;
+        if (SimulationEnabled)
+            return;
 
         Input = Vector2.zero;
         MoveDirection = Vector3.zero;
         DesiredVelocity = Vector3.zero;
-        if (Player.IsServer) Player.Body.linearVelocity = new Vector3(0f, Player.Body.linearVelocity.y, 0f);
+
+        if (Player.IsServer || !Player.IsSpawned)
+            Player.Body.linearVelocity = new Vector3(0f, Player.Body.linearVelocity.y, 0f);
     }
 
     private Vector3 ResolveMoveDirection(Vector2 input)
     {
-        Vector3 direction;
-
-        direction = new Vector3(input.x, 0f, input.y);
+        Vector3 direction = new(input.x, 0f, input.y);
         direction.Normalize();
 
         return direction;
