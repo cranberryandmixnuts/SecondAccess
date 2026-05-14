@@ -18,34 +18,31 @@ public sealed class LinkManager : NetworkSingleton<LinkManager, SceneScope>
     private LinkMode initialMode = LinkMode.Rope;
 
     [SerializeField, MinValue(0.1f), TitleGroup("Rope")]
-    private float ropeMaxDistance = 12f;
+    private float ropeMaxDistance = 16f;
 
     [SerializeField, MinValue(0f), TitleGroup("Rope")]
     private float ropeSoftDistance = 8f;
 
     [SerializeField, Range(0f, 1f), TitleGroup("Rope")]
-    private float minimumOutwardSpeedRatio = 0.2f;
+    private float minimumOutwardSpeedRatio = 0.3f;
 
     [SerializeField, Range(0f, 1f), TitleGroup("Rope")]
-    private float ropeDragTransferRatio = 0.65f;
+    private float ropeDragTransferRatio = 0.6f;
 
     [SerializeField, MinValue(0f), TitleGroup("Rope")]
-    private float ropePullAcceleration = 20f;
+    private float ropePullAcceleration = 100f;
 
     [SerializeField, MinValue(0f), TitleGroup("Rope")]
-    private float ropeOverstretchDistance = 2f;
+    private float ropeOverstretchDistance = 3f;
 
     [SerializeField, MinValue(0f), TitleGroup("Rope")]
-    private float ropeOverstretchPullAcceleration = 80f;
+    private float ropeOverstretchPullAcceleration = 160f;
 
     [SerializeField, MinValue(0f), TitleGroup("Rope")]
-    private float ropeHardCorrectionSpeed = 8f;
+    private float ropeHardCorrectionSpeed = 10f;
 
     [SerializeField, MinValue(0.1f), TitleGroup("Energy")]
-    private float energyMaxDistance = 8f;
-
-    [SerializeField, TitleGroup("Debug")]
-    private bool logRejectedConversion = true;
+    private float energyMaxDistance = 10f;
 
     public NetworkVariable<LinkMode> Mode { get; } = new(LinkMode.Rope, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     public NetworkVariable<ulong> FirstPlayerObjectId { get; } = new(MissingNetworkObjectId, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
@@ -155,8 +152,7 @@ public sealed class LinkManager : NetworkSingleton<LinkManager, SceneScope>
 
         if (!CanConvertTo(targetMode))
         {
-            if (logRejectedConversion)
-                Debug.Log($"[SecondAccess] Link mode conversion rejected. Current={Mode.Value}, Target={targetMode}, Distance={GetDirectDistance():0.00}, Relay={HasRelayConnection}");
+            Debug.Log($"[SecondAccess] Link mode conversion rejected. Current={Mode.Value}, Target={targetMode}, Distance={GetDirectDistance():0.00}, Relay={HasRelayConnection}");
 
             return false;
         }
@@ -324,26 +320,38 @@ public sealed class LinkManager : NetworkSingleton<LinkManager, SceneScope>
 
         Vector3 direction = delta / distance;
         float slowdownStartDistance = Mathf.Min(ropeSoftDistance, ropeMaxDistance);
-        float stretchRatio = GetStretchRatio(distance, slowdownStartDistance);
+        float stretchRatio = GetSoftStretchRatio(distance, slowdownStartDistance);
+        float overstretchRatio = GetOverstretchRatio(distance);
+
+        if (stretchRatio > 0f || overstretchRatio > 0f)
+            ApplyOutwardMovementResistance(firstBody, secondBody, direction, Mathf.Max(stretchRatio, overstretchRatio));
 
         if (stretchRatio > 0f)
-            ApplyOutwardMovementResistance(firstBody, secondBody, direction, stretchRatio);
+            ApplyRopePull(firstBody, secondBody, direction, stretchRatio);
 
-        if (distance > slowdownStartDistance)
-            ApplyRopePull(firstBody, secondBody, direction, distance, slowdownStartDistance);
-
-        if (distance > ropeMaxDistance)
-            ApplyOverstretchRecovery(firstBody, secondBody, direction, distance);
+        if (overstretchRatio > 0f)
+            ApplyOverstretchRecovery(firstBody, secondBody, direction, overstretchRatio);
 
         ApplyHardLimitCorrection(firstBody, secondBody, direction, distance);
     }
 
-    private float GetStretchRatio(float distance, float slowdownStartDistance)
+    private float GetSoftStretchRatio(float distance, float slowdownStartDistance)
     {
         if (ropeMaxDistance <= slowdownStartDistance)
             return distance >= ropeMaxDistance ? 1f : 0f;
 
         return Mathf.InverseLerp(slowdownStartDistance, ropeMaxDistance, Mathf.Min(distance, ropeMaxDistance));
+    }
+
+    private float GetOverstretchRatio(float distance)
+    {
+        if (distance <= ropeMaxDistance)
+            return 0f;
+
+        if (ropeOverstretchDistance <= 0f)
+            return 1f;
+
+        return Mathf.Clamp01((distance - ropeMaxDistance) / ropeOverstretchDistance);
     }
 
     private void ApplyOutwardMovementResistance(Rigidbody firstBody, Rigidbody secondBody, Vector3 direction, float stretchRatio)
@@ -353,37 +361,48 @@ public sealed class LinkManager : NetworkSingleton<LinkManager, SceneScope>
         Vector3 nextFirstVelocity = firstVelocity;
         Vector3 nextSecondVelocity = secondVelocity;
 
-        float speedRatio = Mathf.Lerp(1f, minimumOutwardSpeedRatio, stretchRatio);
+        float elasticRatio = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(stretchRatio));
+        float speedRatio = Mathf.Lerp(1f, minimumOutwardSpeedRatio, elasticRatio);
+        float removedRatio = 1f - speedRatio;
 
-        float firstOutwardSpeed = Vector3.Dot(firstVelocity, -direction);
+        float firstOutwardSpeed = Mathf.Max(0f, Vector3.Dot(firstVelocity, -direction));
+        float secondOutwardSpeed = Mathf.Max(0f, Vector3.Dot(secondVelocity, direction));
 
         if (firstOutwardSpeed > 0f)
         {
-            float removedSpeed = firstOutwardSpeed * (1f - speedRatio);
-            Vector3 removedVelocity = -direction * removedSpeed;
-
-            nextFirstVelocity -= removedVelocity;
-            nextSecondVelocity += removedVelocity * ropeDragTransferRatio;
+            float removedSpeed = firstOutwardSpeed * removedRatio;
+            nextFirstVelocity += direction * removedSpeed;
         }
-
-        float secondOutwardSpeed = Vector3.Dot(secondVelocity, direction);
 
         if (secondOutwardSpeed > 0f)
         {
-            float removedSpeed = secondOutwardSpeed * (1f - speedRatio);
-            Vector3 removedVelocity = direction * removedSpeed;
+            float removedSpeed = secondOutwardSpeed * removedRatio;
+            nextSecondVelocity -= direction * removedSpeed;
+        }
 
-            nextSecondVelocity -= removedVelocity;
-            nextFirstVelocity += removedVelocity * ropeDragTransferRatio;
+        float sharedOutwardSpeed = Mathf.Min(firstOutwardSpeed, secondOutwardSpeed);
+        float firstExclusiveOutwardSpeed = Mathf.Max(0f, firstOutwardSpeed - sharedOutwardSpeed);
+        float secondExclusiveOutwardSpeed = Mathf.Max(0f, secondOutwardSpeed - sharedOutwardSpeed);
+
+        if (firstExclusiveOutwardSpeed > 0f)
+        {
+            float transferSpeed = firstExclusiveOutwardSpeed * removedRatio * ropeDragTransferRatio;
+            nextSecondVelocity -= direction * transferSpeed;
+        }
+
+        if (secondExclusiveOutwardSpeed > 0f)
+        {
+            float transferSpeed = secondExclusiveOutwardSpeed * removedRatio * ropeDragTransferRatio;
+            nextFirstVelocity += direction * transferSpeed;
         }
 
         SetPlanarVelocity(firstBody, nextFirstVelocity);
         SetPlanarVelocity(secondBody, nextSecondVelocity);
     }
 
-    private void ApplyRopePull(Rigidbody firstBody, Rigidbody secondBody, Vector3 direction, float distance, float slowdownStartDistance)
+    private void ApplyRopePull(Rigidbody firstBody, Rigidbody secondBody, Vector3 direction, float stretchRatio)
     {
-        float pullRatio = GetStretchRatio(distance, slowdownStartDistance);
+        float pullRatio = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(stretchRatio));
         float pullSpeed = ropePullAcceleration * pullRatio * Time.fixedDeltaTime;
         Vector3 pullVelocity = direction * pullSpeed;
 
@@ -391,13 +410,9 @@ public sealed class LinkManager : NetworkSingleton<LinkManager, SceneScope>
         secondBody.linearVelocity = AddPlanarVelocity(secondBody.linearVelocity, -pullVelocity);
     }
 
-    private void ApplyOverstretchRecovery(Rigidbody firstBody, Rigidbody secondBody, Vector3 direction, float distance)
+    private void ApplyOverstretchRecovery(Rigidbody firstBody, Rigidbody secondBody, Vector3 direction, float overstretchRatio)
     {
-        if (ropeOverstretchDistance <= 0f)
-            return;
-
-        float overstretch = distance - ropeMaxDistance;
-        float recoveryRatio = Mathf.Clamp01(overstretch / ropeOverstretchDistance);
+        float recoveryRatio = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(overstretchRatio));
         float recoverySpeed = ropeOverstretchPullAcceleration * recoveryRatio * Time.fixedDeltaTime;
         Vector3 recoveryVelocity = direction * recoverySpeed;
 
@@ -407,16 +422,13 @@ public sealed class LinkManager : NetworkSingleton<LinkManager, SceneScope>
 
     private void ApplyHardLimitCorrection(Rigidbody firstBody, Rigidbody secondBody, Vector3 direction, float distance)
     {
-        if (ropeOverstretchDistance <= 0f)
-            return;
-
-        float hardLimitDistance = ropeMaxDistance + ropeOverstretchDistance;
+        float hardLimitDistance = ropeMaxDistance + Mathf.Max(0f, ropeOverstretchDistance);
 
         if (distance <= hardLimitDistance)
             return;
 
         float excess = distance - hardLimitDistance;
-        float correction = Mathf.Min(excess * 0.5f, ropeHardCorrectionSpeed * Time.fixedDeltaTime);
+        float correction = Mathf.Min(excess * 0.25f, ropeHardCorrectionSpeed * Time.fixedDeltaTime);
         Vector3 correctionOffset = direction * correction;
 
         firstBody.MovePosition(firstBody.position + correctionOffset);

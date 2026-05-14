@@ -222,7 +222,7 @@ Camera:
     serializedVersion: 2
     m_Bits: 128
   m_RenderingPath: -1
-  m_TargetTexture: {fileID: 1378994680}
+  m_TargetTexture: {fileID: 2117811028}
   m_TargetDisplay: 0
   m_TargetEye: 3
   m_HDR: 0
@@ -1393,43 +1393,6 @@ MonoBehaviour:
   maskCamera: {fileID: 324922441}
   compositeMaterial: {fileID: 2100000, guid: 3790a58c71da4574ea9d4a3d5d5d4d8c, type: 2}
   depthBufferBits: 24
---- !u!84 &1378994680
-RenderTexture:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: _OutlineMaskRT
-  m_ImageContentsHash:
-    serializedVersion: 2
-    Hash: 00000000000000000000000000000000
-  m_IsAlphaChannelOptional: 0
-  serializedVersion: 6
-  m_Width: 3840
-  m_Height: 2160
-  m_AntiAliasing: 1
-  m_MipCount: -1
-  m_DepthStencilFormat: 94
-  m_ColorFormat: 5
-  m_MipMap: 0
-  m_GenerateMips: 0
-  m_SRGB: 0
-  m_UseDynamicScale: 0
-  m_UseDynamicScaleExplicit: 0
-  m_BindMS: 0
-  m_EnableCompatibleFormat: 1
-  m_EnableRandomWrite: 0
-  m_TextureSettings:
-    serializedVersion: 2
-    m_FilterMode: 0
-    m_Aniso: 1
-    m_MipBias: 0
-    m_WrapU: 1
-    m_WrapV: 1
-    m_WrapW: 1
-  m_Dimension: 2
-  m_VolumeDepth: 1
-  m_ShadowSamplingMode: 2
 --- !u!1 &1380008310
 GameObject:
   m_ObjectHideFlags: 0
@@ -2475,6 +2438,43 @@ Transform:
   m_Children: []
   m_Father: {fileID: 668079027}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!84 &2117811028
+RenderTexture:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: _OutlineMaskRT
+  m_ImageContentsHash:
+    serializedVersion: 2
+    Hash: 00000000000000000000000000000000
+  m_IsAlphaChannelOptional: 0
+  serializedVersion: 6
+  m_Width: 3840
+  m_Height: 2160
+  m_AntiAliasing: 1
+  m_MipCount: -1
+  m_DepthStencilFormat: 94
+  m_ColorFormat: 5
+  m_MipMap: 0
+  m_GenerateMips: 0
+  m_SRGB: 0
+  m_UseDynamicScale: 0
+  m_UseDynamicScaleExplicit: 0
+  m_BindMS: 0
+  m_EnableCompatibleFormat: 1
+  m_EnableRandomWrite: 0
+  m_TextureSettings:
+    serializedVersion: 2
+    m_FilterMode: 0
+    m_Aniso: 1
+    m_MipBias: 0
+    m_WrapU: 1
+    m_WrapV: 1
+    m_WrapW: 1
+  m_Dimension: 2
+  m_VolumeDepth: 1
+  m_ShadowSamplingMode: 2
 --- !u!1 &2139159021
 GameObject:
   m_ObjectHideFlags: 0
@@ -2547,15 +2547,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SecondAccessLinkManager
   ShowTopMostFoldoutHeaderGroup: 1
   initialMode: 0
-  ropeMaxDistance: 12
+  ropeMaxDistance: 16
   ropeSoftDistance: 8
-  minimumOutwardSpeedRatio: 0.2
-  ropeDragTransferRatio: 0.65
-  ropePullAcceleration: 40
-  ropeOverstretchDistance: 2
-  ropeOverstretchPullAcceleration: 80
-  ropeHardCorrectionSpeed: 8
-  energyMaxDistance: 8
+  minimumOutwardSpeedRatio: 0.3
+  ropeDragTransferRatio: 0.6
+  ropePullAcceleration: 100
+  ropeOverstretchDistance: 3
+  ropeOverstretchPullAcceleration: 160
+  ropeHardCorrectionSpeed: 10
+  energyMaxDistance: 10
   logRejectedConversion: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
