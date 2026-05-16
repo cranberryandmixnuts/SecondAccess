@@ -40,11 +40,19 @@ public sealed class LinkLineView : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (linkManager.TryGetDirectLine(out Vector3 start, out Vector3 end))
+        if (!TryGetLinkManager(out LinkManager manager))
         {
-            DrawLine(start, end, linkManager.Mode.Value);
+            lineRenderer.enabled = false;
             return;
         }
+
+        if (!manager.TryGetLinkPath(out Vector3 firstPosition, out Vector3 relayPosition, out Vector3 secondPosition, out bool usesRelay))
+        {
+            lineRenderer.enabled = false;
+            return;
+        }
+
+        DrawPath(firstPosition, relayPosition, secondPosition, usesRelay, manager.Mode.Value);
     }
 
     private void ConfigureRenderer()
@@ -61,15 +69,25 @@ public sealed class LinkLineView : MonoBehaviour
         lineRenderer.receiveShadows = false;
     }
 
-    private void DrawLine(Vector3 start, Vector3 end, LinkMode mode)
+    private void DrawPath(Vector3 firstPosition, Vector3 relayPosition, Vector3 secondPosition, bool usesRelay, LinkMode mode)
     {
         Color color = GetColor(mode);
         Vector3 offset = Vector3.up * heightOffset;
 
         lineRenderer.enabled = true;
-        lineRenderer.positionCount = 2;
-        lineRenderer.SetPosition(0, start + offset);
-        lineRenderer.SetPosition(1, end + offset);
+        lineRenderer.positionCount = usesRelay ? 3 : 2;
+        lineRenderer.SetPosition(0, firstPosition + offset);
+
+        if (usesRelay)
+        {
+            lineRenderer.SetPosition(1, relayPosition + offset);
+            lineRenderer.SetPosition(2, secondPosition + offset);
+        }
+        else
+        {
+            lineRenderer.SetPosition(1, secondPosition + offset);
+        }
+
         lineRenderer.startColor = color;
         lineRenderer.endColor = color;
         lineRenderer.startWidth = width;
@@ -83,54 +101,18 @@ public sealed class LinkLineView : MonoBehaviour
         lineRenderer.SetPropertyBlock(propertyBlock);
     }
 
-    private Color GetColor(LinkMode mode) => mode == LinkMode.Rope ? ropeColor : energyColor;
-
-    private Material CreateRuntimeMaterial(string materialName, Color color)
+    private bool TryGetLinkManager(out LinkManager manager)
     {
-        Shader shader = FindUnlitShader();
-
-        Material material = new(shader)
+        if (linkManager != null)
         {
-            name = materialName
-        };
+            manager = linkManager;
+            return true;
+        }
 
-        if (material.HasProperty(BaseColorId))
-            material.SetColor(BaseColorId, color);
-
-        if (material.HasProperty(ColorId))
-            material.SetColor(ColorId, color);
-
-        return material;
+        linkManager = LinkManager.Instance;
+        manager = linkManager;
+        return manager != null;
     }
 
-    private Shader FindUnlitShader()
-    {
-        Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
-
-        if (shader != null)
-            return shader;
-
-        shader = Shader.Find("Unlit/Color");
-
-        if (shader != null)
-            return shader;
-
-        shader = Shader.Find("Sprites/Default");
-
-        if (shader != null)
-            return shader;
-
-        return Shader.Find("Hidden/Internal-Colored");
-    }
-
-    private void DestroyRuntimeMaterial(Material material)
-    {
-        if (material == null)
-            return;
-
-        if (Application.isPlaying)
-            Destroy(material);
-        else
-            DestroyImmediate(material);
-    }
+    private Color GetColor(LinkMode mode) => mode == LinkMode.Rope ? ropeColor : energyColor;
 }

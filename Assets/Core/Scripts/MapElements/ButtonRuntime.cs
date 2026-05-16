@@ -123,7 +123,7 @@ public sealed class ButtonRuntime : NetworkBehaviour
     }
 
     [Rpc(SendTo.Server)]
-    private void RequestInstantPressRpc(RpcParams rpcParams = default)
+    private void RequestInstantPressRpc()
     {
         trigger.TriggerOnce();
         PlayInstantPressPulseRpc();

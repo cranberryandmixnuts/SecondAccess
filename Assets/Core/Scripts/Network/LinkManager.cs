@@ -55,6 +55,7 @@ public sealed class LinkManager : NetworkSingleton<LinkManager, SceneScope>
             return;
 
         Mode.Value = initialMode;
+        RelayObjectId.Value = MissingNetworkObjectId;
         energyGameOverLogged = false;
         RegisterExistingPlayers();
     }
@@ -65,6 +66,7 @@ public sealed class LinkManager : NetworkSingleton<LinkManager, SceneScope>
             return;
 
         RegisterExistingPlayers();
+        ValidateRegisteredObjects();
     }
 
     public void RegisterPlayer(NetworkPlayer player)
@@ -72,7 +74,7 @@ public sealed class LinkManager : NetworkSingleton<LinkManager, SceneScope>
         if (!IsServer)
             return;
 
-        ValidateRegisteredPlayers();
+        ValidateRegisteredObjects();
 
         if (FirstPlayerObjectId.Value == player.NetworkObjectId || SecondPlayerObjectId.Value == player.NetworkObjectId)
             return;
@@ -133,7 +135,6 @@ public sealed class LinkManager : NetworkSingleton<LinkManager, SceneScope>
         if (!CanConvertTo(targetMode))
         {
             Debug.Log($"[SecondAccess] Link mode conversion rejected. Current={Mode.Value}, Target={targetMode}, Distance={GetDirectDistance():0.00}, Relay={HasRelayConnection}");
-
             return false;
         }
 
@@ -141,6 +142,118 @@ public sealed class LinkManager : NetworkSingleton<LinkManager, SceneScope>
         energyGameOverLogged = false;
         Debug.Log($"[SecondAccess] Link mode changed: {targetMode}");
         return true;
+    }
+
+    public bool CanToggleRelay(NetworkObject relayObject)
+    {
+        if (!CanUseRelay(relayObject))
+            return false;
+
+        if (IsRelayConnectedTo(relayObject))
+            return true;
+
+        return AreRelaySegmentsWithinMax(relayObject.transform.position);
+    }
+
+    public bool TryToggleRelay(NetworkObject relayObject)
+    {
+        if (!IsServer)
+            return false;
+
+        if (!CanUseRelay(relayObject))
+            return false;
+
+        if (IsRelayConnectedTo(relayObject))
+            return TryDisconnectRelay(relayObject);
+
+        return TryConnectRelay(relayObject);
+    }
+
+    public bool TryConnectRelay(NetworkObject relayObject)
+    {
+        if (!IsServer)
+            return false;
+
+        if (!CanUseRelay(relayObject))
+            return false;
+
+        if (!AreRelaySegmentsWithinMax(relayObject.transform.position))
+        {
+            GetRelaySegmentDistances(relayObject.transform.position, out float firstDistance, out float secondDistance);
+            Debug.Log($"[SecondAccess] Relay connection rejected. Relay={relayObject.NetworkObjectId}, First={firstDistance:0.00}, Second={secondDistance:0.00}, Max={energyMaxDistance:0.00}", relayObject);
+            return false;
+        }
+
+        RelayObjectId.Value = relayObject.NetworkObjectId;
+        energyGameOverLogged = false;
+        Debug.Log($"[SecondAccess] Relay connected. Relay={relayObject.NetworkObjectId}", relayObject);
+        return true;
+    }
+
+    public bool TryDisconnectRelay(NetworkObject relayObject)
+    {
+        if (!IsServer)
+            return false;
+
+        if (!IsRelayConnectedTo(relayObject))
+            return false;
+
+        RelayObjectId.Value = MissingNetworkObjectId;
+        energyGameOverLogged = false;
+        Debug.Log($"[SecondAccess] Relay disconnected. Relay={relayObject.NetworkObjectId}", relayObject);
+        return true;
+    }
+
+    public bool IsRelayConnectedTo(NetworkObject relayObject)
+    {
+        if (relayObject == null)
+            return false;
+
+        return RelayObjectId.Value == relayObject.NetworkObjectId;
+    }
+
+    public bool TryGetRelay(out NetworkObject relayObject)
+    {
+        relayObject = null;
+
+        if (!HasRelayConnection)
+            return false;
+
+        if (NetworkManager.Singleton == null)
+            return false;
+
+        return NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(RelayObjectId.Value, out relayObject);
+    }
+
+    public bool TryGetLinkPath(out Vector3 firstPosition, out Vector3 relayPosition, out Vector3 secondPosition, out bool usesRelay)
+    {
+        firstPosition = Vector3.zero;
+        relayPosition = Vector3.zero;
+        secondPosition = Vector3.zero;
+        usesRelay = false;
+
+        if (TryGetRegisteredPlayers(out NetworkPlayer first, out NetworkPlayer second))
+        {
+            firstPosition = first.transform.position;
+            secondPosition = second.transform.position;
+
+            if (Mode.Value == LinkMode.Energy && TryGetRelay(out NetworkObject relayObject))
+            {
+                relayPosition = relayObject.transform.position;
+                usesRelay = true;
+            }
+
+            return true;
+        }
+
+        if (TryGetScenePlayerObjects(out first, out second))
+        {
+            firstPosition = first.transform.position;
+            secondPosition = second.transform.position;
+            return true;
+        }
+
+        return false;
     }
 
     public bool TryGetDirectLine(out Vector3 start, out Vector3 end)
@@ -226,9 +339,41 @@ public sealed class LinkManager : NetworkSingleton<LinkManager, SceneScope>
         EvaluateEnergyDistance(first, second);
     }
 
+    private bool CanUseRelay(NetworkObject relayObject)
+    {
+        if (!HasTwoPlayers)
+            return false;
+
+        if (Mode.Value != LinkMode.Energy)
+            return false;
+
+        if (relayObject == null)
+            return false;
+
+        return relayObject.IsSpawned;
+    }
+
+    private bool AreRelaySegmentsWithinMax(Vector3 relayPosition)
+    {
+        GetRelaySegmentDistances(relayPosition, out float firstDistance, out float secondDistance);
+        return firstDistance <= energyMaxDistance && secondDistance <= energyMaxDistance;
+    }
+
+    private void GetRelaySegmentDistances(Vector3 relayPosition, out float firstDistance, out float secondDistance)
+    {
+        firstDistance = float.PositiveInfinity;
+        secondDistance = float.PositiveInfinity;
+
+        if (!TryGetRegisteredPlayers(out NetworkPlayer first, out NetworkPlayer second))
+            return;
+
+        firstDistance = Vector3.Distance(first.transform.position, relayPosition);
+        secondDistance = Vector3.Distance(relayPosition, second.transform.position);
+    }
+
     private void RegisterExistingPlayers()
     {
-        ValidateRegisteredPlayers();
+        ValidateRegisteredObjects();
 
         if (HasTwoPlayers)
             return;
@@ -244,13 +389,16 @@ public sealed class LinkManager : NetworkSingleton<LinkManager, SceneScope>
         }
     }
 
-    private void ValidateRegisteredPlayers()
+    private void ValidateRegisteredObjects()
     {
         if (!IsRegisteredObjectAlive(FirstPlayerObjectId.Value))
             FirstPlayerObjectId.Value = MissingNetworkObjectId;
 
         if (!IsRegisteredObjectAlive(SecondPlayerObjectId.Value))
             SecondPlayerObjectId.Value = MissingNetworkObjectId;
+
+        if (HasRelayConnection && !IsRegisteredObjectAlive(RelayObjectId.Value))
+            RelayObjectId.Value = MissingNetworkObjectId;
     }
 
     private bool IsRegisteredObjectAlive(ulong objectId)
@@ -333,6 +481,12 @@ public sealed class LinkManager : NetworkSingleton<LinkManager, SceneScope>
 
     private void EvaluateEnergyDistance(NetworkPlayer first, NetworkPlayer second)
     {
+        if (HasRelayConnection && TryGetRelay(out NetworkObject relayObject))
+        {
+            EvaluateRelayEnergyDistance(first, second, relayObject.transform.position);
+            return;
+        }
+
         float distance = Vector3.Distance(first.transform.position, second.transform.position);
 
         if (distance <= energyMaxDistance)
@@ -344,12 +498,35 @@ public sealed class LinkManager : NetworkSingleton<LinkManager, SceneScope>
         energyGameOverLogged = true;
 
         Debug.Log($"Energy link exceeded max distance. GameOver placeholder. Distance={distance:0.00}, Max={energyMaxDistance:0.00}");
-        ReportEnergyGameOverRpc(distance, energyMaxDistance);
+        ReportEnergyGameOverRpc(distance, 0f, energyMaxDistance, false);
+    }
+
+    private void EvaluateRelayEnergyDistance(NetworkPlayer first, NetworkPlayer second, Vector3 relayPosition)
+    {
+        float firstDistance = Vector3.Distance(first.transform.position, relayPosition);
+        float secondDistance = Vector3.Distance(relayPosition, second.transform.position);
+
+        if (firstDistance <= energyMaxDistance && secondDistance <= energyMaxDistance)
+            return;
+
+        if (energyGameOverLogged)
+            return;
+
+        energyGameOverLogged = true;
+
+        Debug.Log($"Energy relay link exceeded max segment distance. GameOver placeholder. First={firstDistance:0.00}, Second={secondDistance:0.00}, Max={energyMaxDistance:0.00}");
+        ReportEnergyGameOverRpc(firstDistance, secondDistance, energyMaxDistance, true);
     }
 
     [Rpc(SendTo.NotServer)]
-    private void ReportEnergyGameOverRpc(float distance, float maxDistance)
+    private void ReportEnergyGameOverRpc(float firstDistance, float secondDistance, float maxDistance, bool usesRelay)
     {
-        Debug.Log($"Energy link exceeded max distance. GameOver placeholder. Distance={distance:0.00}, Max={maxDistance:0.00}");
+        if (usesRelay)
+        {
+            Debug.Log($"Energy relay link exceeded max segment distance. GameOver placeholder. First={firstDistance:0.00}, Second={secondDistance:0.00}, Max={maxDistance:0.00}");
+            return;
+        }
+
+        Debug.Log($"Energy link exceeded max distance. GameOver placeholder. Distance={firstDistance:0.00}, Max={maxDistance:0.00}");
     }
 }

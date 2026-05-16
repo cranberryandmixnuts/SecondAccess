@@ -9,6 +9,7 @@ public enum InteractionExecutionType
     Hold
 }
 
+[RequireComponent(typeof(Collider))]
 public sealed class Interactable : MonoBehaviour
 {
     [SerializeField]
