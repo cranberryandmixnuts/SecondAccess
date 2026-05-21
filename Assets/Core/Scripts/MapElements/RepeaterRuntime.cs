@@ -4,16 +4,16 @@ using UnityEngine;
 
 [RequireComponent(typeof(NetworkObject))]
 [RequireComponent(typeof(Interactable))]
-public sealed class RelayRuntime : NetworkBehaviour
+public sealed class RepeaterRuntime : NetworkBehaviour
 {
     private Interactable interactable;
-    private NetworkObject relayObject;
+    private NetworkObject repeaterObject;
 
     [ShowInInspector, ReadOnly]
-    public bool IsConnected => LinkManager.Instance.IsRelayConnectedTo(relayObject);
+    public bool IsConnected => LinkManager.Instance.IsRelayConnectedTo(repeaterObject);
 
     [ShowInInspector, ReadOnly]
-    public bool IsInteractableAvailable => LinkManager.Instance.CanToggleRelay(relayObject);
+    public bool IsInteractableAvailable => LinkManager.Instance.CanToggleRelay(repeaterObject);
 
     private bool availabilityInitialized;
     private bool lastAvailability;
@@ -21,7 +21,7 @@ public sealed class RelayRuntime : NetworkBehaviour
     private void Awake()
     {
         interactable = GetComponent<Interactable>();
-        relayObject = GetComponent<NetworkObject>();
+        repeaterObject = GetComponent<NetworkObject>();
     }
 
     private void OnEnable()
@@ -63,6 +63,6 @@ public sealed class RelayRuntime : NetworkBehaviour
     [Rpc(SendTo.Server)]
     private void RequestToggleRelayRpc()
     {
-        LinkManager.Instance.TryToggleRelay(relayObject);
+        LinkManager.Instance.TryToggleRelay(repeaterObject);
     }
 }
