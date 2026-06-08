@@ -312,7 +312,7 @@ Camera:
     serializedVersion: 2
     m_Bits: 128
   m_RenderingPath: -1
-  m_TargetTexture: {fileID: 1631668301}
+  m_TargetTexture: {fileID: 1570588072}
   m_TargetDisplay: 0
   m_TargetEye: 3
   m_HDR: 0
@@ -2116,7 +2116,7 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
---- !u!84 &1631668301
+--- !u!84 &1570588072
 RenderTexture:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2389,7 +2389,7 @@ MonoBehaviour:
   m_BlockingObjects: 0
   m_BlockingMask:
     serializedVersion: 2
-    m_Bits: 55
+    m_Bits: 255
 --- !u!114 &2025561742
 MonoBehaviour:
   m_ObjectHideFlags: 0
