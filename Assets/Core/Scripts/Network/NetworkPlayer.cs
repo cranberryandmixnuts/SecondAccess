@@ -22,6 +22,9 @@ public sealed class NetworkPlayer : NetworkBehaviour
     [SerializeField, Required, TitleGroup("References")]
     private PlayerInteractionModule interaction;
 
+    [SerializeField, Required, TitleGroup("Link Eye")]
+    private LinkEye linkEyePrefab;
+
     [SerializeField, TitleGroup("Owner Only")]
     private Behaviour[] ownerOnlyBehaviours;
 
@@ -36,7 +39,9 @@ public sealed class NetworkPlayer : NetworkBehaviour
     public Player Player => player;
     public Rigidbody Body => body;
     public PlayerMovementModule Movement => movement;
+    public PlayerInteractionModule Interaction => interaction;
 
+    private LinkEye linkEyeInstance;
     private Vector2 lastSentInput;
     private float lastInputSendTime;
     private Coroutine registrationRoutine;
@@ -61,6 +66,9 @@ public sealed class NetworkPlayer : NetworkBehaviour
     {
         ApplyAuthorityState();
 
+        if (IsOwner)
+            CreateLocalLinkEye();
+
         if (IsServer)
             StartRegistration();
     }
@@ -68,6 +76,7 @@ public sealed class NetworkPlayer : NetworkBehaviour
     public override void OnNetworkDespawn()
     {
         StopRegistration();
+        DestroyLocalLinkEye();
 
         if (IsServer && LinkManager.Instance != null)
             LinkManager.Instance.UnregisterPlayer(this);
@@ -126,6 +135,30 @@ public sealed class NetworkPlayer : NetworkBehaviour
 
         LinkManager.Instance.RegisterPlayer(this);
         registrationRoutine = null;
+    }
+
+    private void CreateLocalLinkEye()
+    {
+        if (linkEyeInstance != null)
+            return;
+
+        if (linkEyePrefab == null)
+        {
+            Debug.LogError("Link eye prefab is not assigned.", this);
+            return;
+        }
+
+        linkEyeInstance = Instantiate(linkEyePrefab, transform.position, Quaternion.identity);
+        linkEyeInstance.Bind(this);
+    }
+
+    private void DestroyLocalLinkEye()
+    {
+        if (linkEyeInstance == null)
+            return;
+
+        Destroy(linkEyeInstance.gameObject);
+        linkEyeInstance = null;
     }
 
     private void ApplyAuthorityState()

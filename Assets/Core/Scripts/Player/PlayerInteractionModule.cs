@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -12,6 +13,8 @@ public sealed class PlayerInteractionModule : PlayerModule
     [SerializeField, MinValue(0f), TitleGroup("Raycast")]
     private float interactionDistance = 100f;
 
+    private readonly List<InteractionSource> extraInteractionSources = new();
+
     private bool inputEnabled = true;
 
     public Interactable HoveredInteractable => interactionSource.HoveredInteractable;
@@ -22,13 +25,33 @@ public sealed class PlayerInteractionModule : PlayerModule
         if (!inputEnabled)
             return;
 
-        interactionSource.RefreshHovered(Player.Camera, interactionMask, interactionDistance);
+        RefreshInteractionSources();
 
         if (!InputManager.Instance.InterActionHeld)
-            interactionSource.EndActiveInteraction();
+            EndActiveInteractions();
 
         if (InputManager.Instance.InterActionDown)
-            interactionSource.TryStartCurrentInteraction();
+            TryStartCurrentInteraction();
+    }
+
+    public void RegisterInteractionSource(InteractionSource source)
+    {
+        if (source == interactionSource)
+            return;
+
+        if (extraInteractionSources.Contains(source))
+            return;
+
+        extraInteractionSources.Add(source);
+    }
+
+    public void UnregisterInteractionSource(InteractionSource source)
+    {
+        if (!extraInteractionSources.Remove(source))
+            return;
+
+        source.ClearHover();
+        source.EndActiveInteraction();
     }
 
     public void SetInputEnabled(bool enabled)
@@ -38,9 +61,82 @@ public sealed class PlayerInteractionModule : PlayerModule
         if (inputEnabled)
             return;
 
-        interactionSource.ClearHover();
-        interactionSource.EndActiveInteraction();
+        ClearAllHover();
+        EndActiveInteractions();
     }
 
-    public void ForceEndInteraction() => interactionSource.EndActiveInteraction();
+    public void ForceEndInteraction() => EndActiveInteractions();
+
+    private void RefreshInteractionSources()
+    {
+        interactionSource.RefreshHovered(Player.Camera, interactionMask, interactionDistance);
+
+        for (int i = extraInteractionSources.Count - 1; i >= 0; i--)
+        {
+            InteractionSource source = extraInteractionSources[i];
+
+            if (source == null)
+            {
+                extraInteractionSources.RemoveAt(i);
+                continue;
+            }
+
+            if (!source.isActiveAndEnabled)
+                continue;
+
+            source.RefreshHovered(Player.Camera, interactionMask, interactionDistance);
+        }
+    }
+
+    private bool TryStartCurrentInteraction()
+    {
+        if (interactionSource.TryStartCurrentInteraction())
+            return true;
+
+        for (int i = 0; i < extraInteractionSources.Count; i++)
+        {
+            InteractionSource source = extraInteractionSources[i];
+
+            if (source == null)
+                continue;
+
+            if (!source.isActiveAndEnabled)
+                continue;
+
+            if (source.TryStartCurrentInteraction())
+                return true;
+        }
+
+        return false;
+    }
+
+    private void EndActiveInteractions()
+    {
+        interactionSource.EndActiveInteraction();
+
+        for (int i = 0; i < extraInteractionSources.Count; i++)
+        {
+            InteractionSource source = extraInteractionSources[i];
+
+            if (source == null)
+                continue;
+
+            source.EndActiveInteraction();
+        }
+    }
+
+    private void ClearAllHover()
+    {
+        interactionSource.ClearHover();
+
+        for (int i = 0; i < extraInteractionSources.Count; i++)
+        {
+            InteractionSource source = extraInteractionSources[i];
+
+            if (source == null)
+                continue;
+
+            source.ClearHover();
+        }
+    }
 }

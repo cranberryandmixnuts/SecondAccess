@@ -243,6 +243,7 @@ MonoBehaviour:
   body: {fileID: 5324327768554102720}
   movement: {fileID: 5789632924739316204}
   interaction: {fileID: 3854873538534771067}
+  linkEyePrefab: {fileID: 8158258965457743671, guid: 75fd13a8745229a4e97e3bda7c865079, type: 3}
   ownerOnlyBehaviours: []
   ownerOnlyObjects: []
   inputSendInterval: 0.01
