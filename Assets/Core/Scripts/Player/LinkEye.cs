@@ -40,11 +40,36 @@ public sealed class LinkEye : MonoBehaviour
     private float targetNormalizedPosition;
     private float normalizedVelocity;
 
-    private bool CanMove => LinkManager.Instance.Mode.Value == LinkMode.Energy && !IsPenaltyLocked;
+    private bool IsBound => ownerPlayer != null;
+
+    private bool CanMove
+    {
+        get
+        {
+            LinkManager manager = LinkManager.Instance;
+            return manager != null && manager.Mode.Value == LinkMode.Energy && !IsPenaltyLocked;
+        }
+    }
+
     private bool CanUseInteraction => !IsPenaltyLocked;
+
+    private void Reset()
+    {
+        interactionSource = GetComponent<InteractionSource>();
+        body = GetComponent<Rigidbody>();
+    }
+
+    private void Awake()
+    {
+        interactionSource = GetComponent<InteractionSource>();
+        body = GetComponent<Rigidbody>();
+    }
 
     private void OnEnable()
     {
+        if (!IsBound)
+            return;
+
         TryRegisterInteractionSource();
         RefreshInteractionEnabled();
         ApplyResolvedPosition();
@@ -52,6 +77,9 @@ public sealed class LinkEye : MonoBehaviour
 
     private void Update()
     {
+        if (!IsBound)
+            return;
+
         TryRegisterInteractionSource();
         RefreshInteractionEnabled();
         UpdateMovementInput();
@@ -59,7 +87,13 @@ public sealed class LinkEye : MonoBehaviour
         ApplyResolvedPosition();
     }
 
-    private void LateUpdate() => UpdateCamera();
+    private void LateUpdate()
+    {
+        if (!IsBound)
+            return;
+
+        UpdateCamera();
+    }
 
     private void OnDisable() => UnregisterInteractionSource();
 
@@ -83,6 +117,9 @@ public sealed class LinkEye : MonoBehaviour
     public void SetPenaltyLocked(bool locked)
     {
         IsPenaltyLocked = locked;
+
+        if (!IsBound)
+            return;
 
         if (IsPenaltyLocked)
             SnapNormalizedPosition(0f);
@@ -131,6 +168,9 @@ public sealed class LinkEye : MonoBehaviour
     private void TryRegisterInteractionSource()
     {
         if (registered)
+            return;
+
+        if (!IsBound)
             return;
 
         registeredInteractionModule = ownerPlayer.Interaction;
