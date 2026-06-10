@@ -19,6 +19,9 @@ public sealed class LinkLineView : MonoBehaviour
     [SerializeField, TitleGroup("Visual")]
     private Color energyColor = Color.cyan;
 
+    [SerializeField, TitleGroup("Visual")]
+    private Color laserizedEnergyColor = Color.red;
+
     [SerializeField, MinValue(0f), TitleGroup("Visual")]
     private float width = 0.12f;
 
@@ -52,7 +55,7 @@ public sealed class LinkLineView : MonoBehaviour
             return;
         }
 
-        DrawPath(firstPosition, relayPosition, secondPosition, usesRelay, manager.Mode.Value);
+        DrawPath(firstPosition, relayPosition, secondPosition, usesRelay, manager.Mode.Value, manager.IsEnergyLinkLaserized);
     }
 
     private void ConfigureRenderer()
@@ -69,9 +72,9 @@ public sealed class LinkLineView : MonoBehaviour
         lineRenderer.receiveShadows = false;
     }
 
-    private void DrawPath(Vector3 firstPosition, Vector3 relayPosition, Vector3 secondPosition, bool usesRelay, LinkMode mode)
+    private void DrawPath(Vector3 firstPosition, Vector3 relayPosition, Vector3 secondPosition, bool usesRelay, LinkMode mode, bool isLaserized)
     {
-        Color color = GetColor(mode);
+        Color color = GetColor(mode, isLaserized);
         Vector3 offset = Vector3.up * heightOffset;
 
         lineRenderer.enabled = true;
@@ -114,5 +117,11 @@ public sealed class LinkLineView : MonoBehaviour
         return manager != null;
     }
 
-    private Color GetColor(LinkMode mode) => mode == LinkMode.Rope ? ropeColor : energyColor;
+    private Color GetColor(LinkMode mode, bool isLaserized)
+    {
+        if (mode == LinkMode.Rope)
+            return ropeColor;
+
+        return isLaserized ? laserizedEnergyColor : energyColor;
+    }
 }

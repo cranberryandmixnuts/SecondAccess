@@ -33,6 +33,7 @@ public sealed class LinkManager : NetworkSingleton<LinkManager, SceneScope>
     public NetworkVariable<ulong> FirstPlayerObjectId { get; } = new(MissingNetworkObjectId, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     public NetworkVariable<ulong> SecondPlayerObjectId { get; } = new(MissingNetworkObjectId, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     public NetworkVariable<ulong> RelayObjectId { get; } = new(MissingNetworkObjectId, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    public NetworkVariable<bool> EnergyLinkLaserized { get; } = new(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
     public float RopeMaxDistance => ropeMaxDistance;
     public float RopeSoftDistance => ropeSoftDistance;
@@ -44,6 +45,7 @@ public sealed class LinkManager : NetworkSingleton<LinkManager, SceneScope>
     public float RopeHardCorrectionSpeed => ropeHardCorrectionSpeed;
     public float EnergyMaxDistance => energyMaxDistance;
     public bool HasRelayConnection => RelayObjectId.Value != MissingNetworkObjectId;
+    public bool IsEnergyLinkLaserized => EnergyLinkLaserized.Value;
     public bool HasTwoPlayers => FirstPlayerObjectId.Value != MissingNetworkObjectId && SecondPlayerObjectId.Value != MissingNetworkObjectId;
     public int RegisteredPlayerCount => GetRegisteredPlayerCount();
 
@@ -56,6 +58,7 @@ public sealed class LinkManager : NetworkSingleton<LinkManager, SceneScope>
 
         Mode.Value = initialMode;
         RelayObjectId.Value = MissingNetworkObjectId;
+        EnergyLinkLaserized.Value = false;
         energyGameOverLogged = false;
         RegisterExistingPlayers();
     }
@@ -139,6 +142,7 @@ public sealed class LinkManager : NetworkSingleton<LinkManager, SceneScope>
         }
 
         Mode.Value = targetMode;
+        EnergyLinkLaserized.Value = false;
         energyGameOverLogged = false;
         Debug.Log($"[SecondAccess] Link mode changed: {targetMode}");
         return true;
@@ -188,6 +192,19 @@ public sealed class LinkManager : NetworkSingleton<LinkManager, SceneScope>
         energyGameOverLogged = false;
         Debug.Log($"[SecondAccess] Relay connected. Relay={relayObject.NetworkObjectId}", relayObject);
         return true;
+    }
+
+    public void SetEnergyLinkLaserized(bool laserized)
+    {
+        if (!IsServer)
+            return;
+
+        bool nextLaserized = laserized && Mode.Value == LinkMode.Energy && HasTwoPlayers;
+
+        if (EnergyLinkLaserized.Value == nextLaserized)
+            return;
+
+        EnergyLinkLaserized.Value = nextLaserized;
     }
 
     public bool TryDisconnectRelay(NetworkObject relayObject)
@@ -399,6 +416,9 @@ public sealed class LinkManager : NetworkSingleton<LinkManager, SceneScope>
 
         if (HasRelayConnection && !IsRegisteredObjectAlive(RelayObjectId.Value))
             RelayObjectId.Value = MissingNetworkObjectId;
+
+        if (Mode.Value != LinkMode.Energy || !HasTwoPlayers)
+            EnergyLinkLaserized.Value = false;
     }
 
     private bool IsRegisteredObjectAlive(ulong objectId)

@@ -32,6 +32,7 @@ public sealed class LinkEye : MonoBehaviour
     public InteractionSource InteractionSource => interactionSource;
     public float NormalizedPosition { get; private set; }
     public bool IsPenaltyLocked { get; private set; }
+    public bool IsLaserPenaltyActive => IsPenaltyLocked || IsEnergyLinkLaserized;
 
     private NetworkPlayer ownerPlayer;
     private PlayerInteractionModule registeredInteractionModule;
@@ -47,11 +48,20 @@ public sealed class LinkEye : MonoBehaviour
         get
         {
             LinkManager manager = LinkManager.Instance;
-            return manager != null && manager.Mode.Value == LinkMode.Energy && !IsPenaltyLocked;
+            return manager != null && manager.Mode.Value == LinkMode.Energy && !IsLaserPenaltyActive;
         }
     }
 
-    private bool CanUseInteraction => !IsPenaltyLocked;
+    private bool CanUseInteraction => !IsLaserPenaltyActive;
+
+    private bool IsEnergyLinkLaserized
+    {
+        get
+        {
+            LinkManager manager = LinkManager.Instance;
+            return manager != null && manager.IsEnergyLinkLaserized;
+        }
+    }
 
     private void Reset()
     {
@@ -121,7 +131,7 @@ public sealed class LinkEye : MonoBehaviour
         if (!IsBound)
             return;
 
-        if (IsPenaltyLocked)
+        if (IsLaserPenaltyActive)
             SnapNormalizedPosition(0f);
 
         RefreshInteractionEnabled();
