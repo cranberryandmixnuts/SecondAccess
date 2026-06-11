@@ -19,9 +19,6 @@ public sealed class LaserEmitterRuntime : MonoBehaviour
     [SerializeField, TitleGroup("Laser")]
     private Transform laserOrigin;
 
-    [SerializeField, TitleGroup("Laser")]
-    private bool activeWhenTriggered = true;
-
     [SerializeField, TitleGroup("Laser"), MinValue(0.1f)]
     private float maxDistance = 40f;
 
@@ -36,9 +33,6 @@ public sealed class LaserEmitterRuntime : MonoBehaviour
 
     [SerializeField, TitleGroup("Link Interaction"), MinValue(0.001f)]
     private float linkInteractionRadius = 0.12f;
-
-    [SerializeField, TitleGroup("Link Interaction"), MinValue(0f)]
-    private float linkHeightOffset = 0.25f;
 
     [SerializeField, TitleGroup("Link Interaction"), MinValue(0f)]
     private float linkHeightTolerance = 1f;
@@ -59,32 +53,14 @@ public sealed class LaserEmitterRuntime : MonoBehaviour
     private readonly HashSet<Collider> ignoredColliders = new();
     private MaterialPropertyBlock propertyBlock;
 
-    private bool IsActive => triggerTarget.IsTriggered == activeWhenTriggered;
-
-    private void Reset()
-    {
-        triggerTarget = GetComponent<TriggerTarget>();
-        lineRenderer = GetComponent<LineRenderer>();
-        laserOrigin = transform;
-    }
-
     private void Awake()
     {
-        triggerTarget = GetComponent<TriggerTarget>();
-        lineRenderer = GetComponent<LineRenderer>();
-
-        if (laserOrigin == null)
-            laserOrigin = transform;
-
         propertyBlock = new MaterialPropertyBlock();
         ConfigureRenderer();
         LaserSystemRuntime.EnsureExists();
     }
 
-    private void OnEnable()
-    {
-        LaserSystemRuntime.RegisterEmitter(this);
-    }
+    private void OnEnable() => LaserSystemRuntime.RegisterEmitter(this);
 
     private void OnDisable()
     {
@@ -96,12 +72,6 @@ public sealed class LaserEmitterRuntime : MonoBehaviour
     {
         points.Clear();
         ignoredColliders.Clear();
-
-        if (!IsActive)
-        {
-            ClearVisual();
-            return false;
-        }
 
         Vector3 origin = laserOrigin.position;
         Vector3 direction = ResolvePlanarDirection(laserOrigin.forward);
@@ -327,7 +297,7 @@ public sealed class LaserEmitterRuntime : MonoBehaviour
             return false;
 
         Vector3 point = origin + direction * rayDistance;
-        Vector3 linkPoint = Vector3.Lerp(segmentStart, segmentEnd, segmentT) + Vector3.up * linkHeightOffset;
+        Vector3 linkPoint = Vector3.Lerp(segmentStart, segmentEnd, segmentT);
 
         if (Mathf.Abs(point.y - linkPoint.y) > linkHeightTolerance)
             return false;
@@ -357,7 +327,7 @@ public sealed class LaserEmitterRuntime : MonoBehaviour
 
     private void AddPoint(Vector3 point)
     {
-        if (points.Count > 0 && Vector3.Distance(points[points.Count - 1], point) <= MinimumSegmentLength)
+        if (points.Count > 0 && Vector3.Distance(points[^1], point) <= MinimumSegmentLength)
             return;
 
         points.Add(point);
