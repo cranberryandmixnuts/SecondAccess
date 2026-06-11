@@ -58,10 +58,7 @@ public sealed class ButtonRuntime : NetworkBehaviour
         UpdateVisualState(true);
     }
 
-    public override void OnNetworkDespawn()
-    {
-        pressedSourceCount.OnValueChanged -= OnPressedSourceCountChanged;
-    }
+    public override void OnNetworkDespawn() => pressedSourceCount.OnValueChanged -= OnPressedSourceCountChanged;
 
     private void OnDisable()
     {
