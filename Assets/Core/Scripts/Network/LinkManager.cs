@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using Unity.Netcode;
 using UnityEngine;
@@ -25,6 +26,9 @@ public sealed class LinkManager : NetworkSingleton<LinkManager, SceneScope>
     [SerializeField, MinValue(0f)] private float ropeOverstretchDistance = 3f;
     [SerializeField, MinValue(0f)] private float ropeOverstretchPullAcceleration = 160f;
     [SerializeField, MinValue(0f)] private float ropeHardCorrectionSpeed = 10f;
+    [SerializeField, MinValue(0f)] private float ropeSurfaceOffset = 0.02f;
+    [SerializeField, Range(12, 96)] private int ropeCircleSegments = 48;
+    [SerializeField, MinValue(8)] private int ropeMaxGraphNodes = 160;
 
     [Header("Energy Link Settings")]
     [SerializeField, MinValue(0.1f)] private float energyMaxDistance = 10f;
@@ -43,11 +47,16 @@ public sealed class LinkManager : NetworkSingleton<LinkManager, SceneScope>
     public float RopeOverstretchDistance => ropeOverstretchDistance;
     public float RopeOverstretchPullAcceleration => ropeOverstretchPullAcceleration;
     public float RopeHardCorrectionSpeed => ropeHardCorrectionSpeed;
+    public float RopeSurfaceOffset => ropeSurfaceOffset;
+    public int RopeCircleSegments => ropeCircleSegments;
+    public int RopeMaxGraphNodes => ropeMaxGraphNodes;
     public float EnergyMaxDistance => energyMaxDistance;
     public bool HasRelayConnection => RelayObjectId.Value != MissingNetworkObjectId;
     public bool IsEnergyLinkLaserized => EnergyLinkLaserized.Value;
     public bool HasTwoPlayers => FirstPlayerObjectId.Value != MissingNetworkObjectId && SecondPlayerObjectId.Value != MissingNetworkObjectId;
     public int RegisteredPlayerCount => GetRegisteredPlayerCount();
+
+    private readonly List<Vector3> ropePathBuffer = new();
 
     private bool energyGameOverLogged;
 
@@ -273,6 +282,56 @@ public sealed class LinkManager : NetworkSingleton<LinkManager, SceneScope>
         return false;
     }
 
+
+    public bool TryGetLinkPath(List<Vector3> pathPoints)
+    {
+        pathPoints.Clear();
+
+        if (!TryResolveLinkEndpointPositions(out Vector3 firstPosition, out Vector3 secondPosition))
+            return false;
+
+        if (Mode.Value == LinkMode.Rope)
+        {
+            RopePathOptions options = new(ropeSurfaceOffset, ropeCircleSegments, ropeMaxGraphNodes);
+
+            if (RopePathSolver.TrySolve(firstPosition, secondPosition, options, pathPoints))
+                return true;
+        }
+
+        pathPoints.Add(firstPosition);
+
+        if (Mode.Value == LinkMode.Energy && TryGetRelay(out NetworkObject relayObject))
+            pathPoints.Add(relayObject.transform.position);
+
+        pathPoints.Add(secondPosition);
+        return true;
+    }
+
+    public bool TryGetRopeEndpointState(out Vector3 firstInwardDirection, out Vector3 secondInwardDirection, out float pathLength)
+    {
+        firstInwardDirection = Vector3.zero;
+        secondInwardDirection = Vector3.zero;
+        pathLength = 0f;
+
+        if (Mode.Value != LinkMode.Rope)
+            return false;
+
+        if (!TryGetLinkPath(ropePathBuffer))
+            return false;
+
+        if (ropePathBuffer.Count < 2)
+            return false;
+
+        pathLength = RopePathSolver.GetLength(ropePathBuffer);
+
+        if (pathLength <= 0.0001f)
+            return false;
+
+        firstInwardDirection = ResolvePlanarDirection(ropePathBuffer[1] - ropePathBuffer[0]);
+        secondInwardDirection = ResolvePlanarDirection(ropePathBuffer[^2] - ropePathBuffer[^1]);
+        return firstInwardDirection.sqrMagnitude > 0.0001f && secondInwardDirection.sqrMagnitude > 0.0001f;
+    }
+
     public bool TryGetDirectLine(out Vector3 start, out Vector3 end)
     {
         start = Vector3.zero;
@@ -354,6 +413,39 @@ public sealed class LinkManager : NetworkSingleton<LinkManager, SceneScope>
             return;
 
         EvaluateEnergyDistance(first, second);
+    }
+
+
+    private bool TryResolveLinkEndpointPositions(out Vector3 firstPosition, out Vector3 secondPosition)
+    {
+        firstPosition = Vector3.zero;
+        secondPosition = Vector3.zero;
+
+        if (TryGetRegisteredPlayers(out NetworkPlayer first, out NetworkPlayer second))
+        {
+            firstPosition = first.transform.position;
+            secondPosition = second.transform.position;
+            return true;
+        }
+
+        if (TryGetScenePlayerObjects(out first, out second))
+        {
+            firstPosition = first.transform.position;
+            secondPosition = second.transform.position;
+            return true;
+        }
+
+        return false;
+    }
+
+    private Vector3 ResolvePlanarDirection(Vector3 direction)
+    {
+        direction.y = 0f;
+
+        if (direction.sqrMagnitude <= 0.0001f)
+            return Vector3.zero;
+
+        return direction.normalized;
     }
 
     private bool CanUseRelay(NetworkObject relayObject)

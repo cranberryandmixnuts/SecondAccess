@@ -47,6 +47,7 @@ public sealed class LaserSystemManager : Singleton<LaserSystemManager, GlobalSco
     private readonly HashSet<ReceiverInput> previousInputs = new();
     private readonly List<ReceiverInput> endedInputs = new();
     private readonly List<ReceiverInput> startedInputs = new();
+    private readonly List<Vector3> linkPathPoints = new();
     private readonly Collider[] linkReceiverBuffer = new Collider[64];
 
     public static bool CanWriteGameplay
@@ -142,13 +143,11 @@ public sealed class LaserSystemManager : Singleton<LaserSystemManager, GlobalSco
 
     private void AddEnergyLinkInputs(LinkManager linkManager)
     {
-        if (!linkManager.TryGetLinkPath(out Vector3 firstPosition, out Vector3 relayPosition, out Vector3 secondPosition, out bool usesRelay))
+        if (!linkManager.TryGetLinkPath(linkPathPoints))
             return;
 
-        AddEnergyLinkSegmentInputs(linkManager, firstPosition, usesRelay ? relayPosition : secondPosition);
-
-        if (usesRelay)
-            AddEnergyLinkSegmentInputs(linkManager, relayPosition, secondPosition);
+        for (int i = 1; i < linkPathPoints.Count; i++)
+            AddEnergyLinkSegmentInputs(linkManager, linkPathPoints[i - 1], linkPathPoints[i]);
     }
 
     private void AddEnergyLinkSegmentInputs(LinkManager linkManager, Vector3 start, Vector3 end)

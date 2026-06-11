@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -31,6 +32,9 @@ public sealed class LinkLineView : MonoBehaviour
     [SerializeField, MinValue(0), TitleGroup("Visual")]
     private int capVertices = 4;
 
+    private readonly List<Vector3> pathPoints = new();
+    private readonly List<Vector3> renderPoints = new();
+
     private MaterialPropertyBlock propertyBlock;
 
     private void Awake()
@@ -49,13 +53,13 @@ public sealed class LinkLineView : MonoBehaviour
             return;
         }
 
-        if (!manager.TryGetLinkPath(out Vector3 firstPosition, out Vector3 relayPosition, out Vector3 secondPosition, out bool usesRelay))
+        if (!manager.TryGetLinkPath(pathPoints))
         {
             lineRenderer.enabled = false;
             return;
         }
 
-        DrawPath(firstPosition, relayPosition, secondPosition, usesRelay, manager.Mode.Value, manager.IsEnergyLinkLaserized);
+        DrawPath(pathPoints, manager.Mode.Value, manager.IsEnergyLinkLaserized);
     }
 
     private void ConfigureRenderer()
@@ -72,25 +76,27 @@ public sealed class LinkLineView : MonoBehaviour
         lineRenderer.receiveShadows = false;
     }
 
-    private void DrawPath(Vector3 firstPosition, Vector3 relayPosition, Vector3 secondPosition, bool usesRelay, LinkMode mode, bool isLaserized)
+    private void DrawPath(IReadOnlyList<Vector3> path, LinkMode mode, bool isLaserized)
     {
+        if (path.Count < 2)
+        {
+            lineRenderer.enabled = false;
+            return;
+        }
+
         Color color = GetColor(mode, isLaserized);
         Vector3 offset = Vector3.up * heightOffset;
 
+        renderPoints.Clear();
+
+        for (int i = 0; i < path.Count; i++)
+            renderPoints.Add(path[i] + offset);
+
         lineRenderer.enabled = true;
-        lineRenderer.positionCount = usesRelay ? 3 : 2;
-        lineRenderer.SetPosition(0, firstPosition + offset);
+        lineRenderer.positionCount = renderPoints.Count;
 
-        if (usesRelay)
-        {
-            lineRenderer.SetPosition(1, relayPosition + offset);
-            lineRenderer.SetPosition(2, secondPosition + offset);
-        }
-        else
-        {
-            lineRenderer.SetPosition(1, secondPosition + offset);
-        }
-
+        for (int i = 0; i < renderPoints.Count; i++)
+            lineRenderer.SetPosition(i, renderPoints[i]);
         lineRenderer.startColor = color;
         lineRenderer.endColor = color;
         lineRenderer.startWidth = width;

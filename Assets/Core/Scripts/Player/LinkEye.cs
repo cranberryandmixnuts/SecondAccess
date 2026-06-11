@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -33,6 +34,8 @@ public sealed class LinkEye : MonoBehaviour
     public float NormalizedPosition { get; private set; }
     public bool IsPenaltyLocked { get; private set; }
     public bool IsLaserPenaltyActive => IsPenaltyLocked || IsEnergyLinkLaserized;
+
+    private readonly List<Vector3> pathPoints = new();
 
     private NetworkPlayer ownerPlayer;
     private PlayerInteractionModule registeredInteractionModule;
@@ -228,48 +231,55 @@ public sealed class LinkEye : MonoBehaviour
             return true;
         }
 
-        if (!manager.TryGetLinkPath(out Vector3 firstPosition, out Vector3 relayPosition, out Vector3 secondPosition, out bool usesRelay))
+        if (!manager.TryGetLinkPath(pathPoints))
         {
             position = ownerPlayer.transform.position + Vector3.up * heightOffset;
             return true;
         }
 
         bool ownerIsFirst = ownerPlayer.NetworkObjectId == firstPlayer.NetworkObjectId;
-
-        Vector3 start = ownerIsFirst ? firstPosition : secondPosition;
-        Vector3 end = ownerIsFirst ? secondPosition : firstPosition;
-
-        position = usesRelay
-            ? ResolveSegmentedPosition(start, relayPosition, end, NormalizedPosition)
-            : Vector3.Lerp(start, end, NormalizedPosition);
-
-        position += Vector3.up * heightOffset;
+        position = ResolvePathPosition(pathPoints, NormalizedPosition, !ownerIsFirst) + Vector3.up * heightOffset;
         return true;
     }
 
-    private Vector3 ResolveSegmentedPosition(Vector3 start, Vector3 middle, Vector3 end, float t)
+    private Vector3 ResolvePathPosition(IReadOnlyList<Vector3> path, float t, bool reverse)
     {
-        float firstLength = Vector3.Distance(start, middle);
-        float secondLength = Vector3.Distance(middle, end);
-        float totalLength = firstLength + secondLength;
+        if (path.Count == 0)
+            return ownerPlayer.transform.position;
+
+        if (path.Count == 1)
+            return path[0];
+
+        float totalLength = 0f;
+
+        for (int i = 1; i < path.Count; i++)
+            totalLength += Vector3.Distance(path[i - 1], path[i]);
 
         if (totalLength <= 0.0001f)
-            return start;
+            return reverse ? path[^1] : path[0];
 
         float targetDistance = Mathf.Clamp01(t) * totalLength;
+        float walkedDistance = 0f;
+        int startIndex = reverse ? path.Count - 1 : 0;
+        int endIndex = reverse ? 0 : path.Count - 1;
+        int step = reverse ? -1 : 1;
 
-        if (targetDistance <= firstLength)
+        for (int i = startIndex; i != endIndex; i += step)
         {
-            if (firstLength <= 0.0001f)
-                return middle;
+            Vector3 segmentStart = path[i];
+            Vector3 segmentEnd = path[i + step];
+            float segmentLength = Vector3.Distance(segmentStart, segmentEnd);
 
-            return Vector3.Lerp(start, middle, targetDistance / firstLength);
+            if (segmentLength <= 0.0001f)
+                continue;
+
+            if (walkedDistance + segmentLength >= targetDistance)
+                return Vector3.Lerp(segmentStart, segmentEnd, (targetDistance - walkedDistance) / segmentLength);
+
+            walkedDistance += segmentLength;
         }
 
-        if (secondLength <= 0.0001f)
-            return end;
-
-        return Vector3.Lerp(middle, end, (targetDistance - firstLength) / secondLength);
+        return reverse ? path[0] : path[^1];
     }
 
     private void UpdateCamera()
