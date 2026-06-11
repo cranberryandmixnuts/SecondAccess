@@ -29,7 +29,7 @@ public sealed class LaserReceiverRuntime : MonoBehaviour, ILaserReceiver
 
         public override bool Equals(object obj) => obj is LaserInputSource other && Equals(other);
 
-        public override int GetHashCode() => HashCode.Combine(Source != null ? Source.GetInstanceID() : 0, Key);
+        public override int GetHashCode() => HashCode.Combine(Source != null ? Source.GetEntityId() : default, Key);
     }
 
     [SerializeField, Required, TitleGroup("References")]
@@ -45,20 +45,9 @@ public sealed class LaserReceiverRuntime : MonoBehaviour, ILaserReceiver
 
     private readonly HashSet<LaserInputSource> activeInputs = new();
 
-    private void Reset()
-    {
-        trigger = GetComponent<Trigger>();
-    }
-
-    private void Awake()
-    {
-        trigger = GetComponent<Trigger>();
-        LaserSystemRuntime.EnsureExists();
-    }
-
     private void OnDisable()
     {
-        if (!LaserSystemRuntime.CanWriteGameplay)
+        if (!LaserSystemManager.CanWriteGameplay)
             return;
 
         foreach (LaserInputSource input in activeInputs)
@@ -72,7 +61,7 @@ public sealed class LaserReceiverRuntime : MonoBehaviour, ILaserReceiver
 
     public void SetLaserInput(Component source, string sourceKey, bool active)
     {
-        if (!LaserSystemRuntime.CanWriteGameplay)
+        if (!LaserSystemManager.CanWriteGameplay)
             return;
 
         LaserInputSource input = new(source, sourceKey);

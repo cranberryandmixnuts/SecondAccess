@@ -63,18 +63,6 @@ public sealed class LinkEye : MonoBehaviour
         }
     }
 
-    private void Reset()
-    {
-        interactionSource = GetComponent<InteractionSource>();
-        body = GetComponent<Rigidbody>();
-    }
-
-    private void Awake()
-    {
-        interactionSource = GetComponent<InteractionSource>();
-        body = GetComponent<Rigidbody>();
-    }
-
     private void OnEnable()
     {
         if (!IsBound)

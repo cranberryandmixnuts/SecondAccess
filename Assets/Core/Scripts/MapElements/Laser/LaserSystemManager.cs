@@ -4,7 +4,7 @@ using Unity.Netcode;
 using UnityEngine;
 
 [DefaultExecutionOrder(20000)]
-public sealed class LaserSystemRuntime : MonoBehaviour
+public sealed class LaserSystemManager : Singleton<LaserSystemManager, GlobalScope>
 {
     internal readonly struct ReceiverInput : IEquatable<ReceiverInput>
     {
@@ -25,17 +25,22 @@ public sealed class LaserSystemRuntime : MonoBehaviour
 
         public override int GetHashCode()
         {
-            int receiverId = Receiver is UnityEngine.Object receiverObject && receiverObject != null ? receiverObject.GetInstanceID() : 0;
-            int sourceId = Source != null ? Source.GetInstanceID() : 0;
+            EntityId receiverId = default;
+            EntityId sourceId = default;
+
+            if (Receiver is UnityEngine.Object receiverObject && receiverObject != null)
+                receiverId = receiverObject.GetEntityId();
+
+            if (Source != null)
+                sourceId = Source.GetEntityId();
+
             return HashCode.Combine(receiverId, sourceId, Key);
         }
     }
 
-    private const string RuntimeName = "Laser System Runtime";
     private const string DirectInputKey = "DirectLaser";
     private const string EnergyLinkInputKey = "EnergyLinkLaser";
 
-    private static LaserSystemRuntime instance;
     private static readonly List<LaserEmitterRuntime> emitters = new();
 
     private readonly HashSet<ReceiverInput> currentInputs = new();
@@ -58,24 +63,11 @@ public sealed class LaserSystemRuntime : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStatics()
     {
-        instance = null;
         emitters.Clear();
-    }
-
-    public static void EnsureExists()
-    {
-        if (instance != null)
-            return;
-
-        GameObject runtimeObject = new(RuntimeName);
-        DontDestroyOnLoad(runtimeObject);
-        instance = runtimeObject.AddComponent<LaserSystemRuntime>();
     }
 
     public static void RegisterEmitter(LaserEmitterRuntime emitter)
     {
-        EnsureExists();
-
         if (emitters.Contains(emitter))
             return;
 

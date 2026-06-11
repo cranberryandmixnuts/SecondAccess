@@ -9,7 +9,10 @@ using UnityEngine;
 [RequireComponent(typeof(Trigger))]
 public sealed class ButtonRuntime : NetworkBehaviour
 {
+    [SerializeField, Required, TitleGroup("References")]
     private Interactable interactable;
+
+    [SerializeField, Required, TitleGroup("References")]
     private Trigger trigger;
 
     [SerializeField, TitleGroup("Visual")]
@@ -41,12 +44,6 @@ public sealed class ButtonRuntime : NetworkBehaviour
 
     private void Awake()
     {
-        interactable = GetComponent<Interactable>();
-        trigger = GetComponent<Trigger>();
-
-        if (visualRoot != null)
-            releasedLocalPosition = visualRoot.localPosition;
-
         interactable.InteractionStarted += OnInteractionStarted;
         interactable.InteractionPerformed += OnInteractionPerformed;
         interactable.InteractionEnded += OnInteractionEnded;

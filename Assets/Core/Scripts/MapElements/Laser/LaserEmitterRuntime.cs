@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -51,24 +50,25 @@ public sealed class LaserEmitterRuntime : MonoBehaviour
 
     private readonly List<Vector3> points = new();
     private readonly HashSet<Collider> ignoredColliders = new();
+    private readonly RaycastHit[] physicsHitBuffer = new RaycastHit[32];
+
     private MaterialPropertyBlock propertyBlock;
 
     private void Awake()
     {
         propertyBlock = new MaterialPropertyBlock();
         ConfigureRenderer();
-        LaserSystemRuntime.EnsureExists();
     }
 
-    private void OnEnable() => LaserSystemRuntime.RegisterEmitter(this);
+    private void OnEnable() => LaserSystemManager.RegisterEmitter(this);
 
     private void OnDisable()
     {
-        LaserSystemRuntime.UnregisterEmitter(this);
+        LaserSystemManager.UnregisterEmitter(this);
         ClearVisual();
     }
 
-    internal bool Simulate(HashSet<LaserSystemRuntime.ReceiverInput> receiverInputs)
+    internal bool Simulate(HashSet<LaserSystemManager.ReceiverInput> receiverInputs)
     {
         points.Clear();
         ignoredColliders.Clear();
@@ -82,14 +82,12 @@ public sealed class LaserEmitterRuntime : MonoBehaviour
 
         for (int reflectionIndex = 0; reflectionIndex <= maxReflections; reflectionIndex++)
         {
-            if (remainingDistance <= MinimumSegmentLength)
-                break;
+            if (remainingDistance <= MinimumSegmentLength) break;
 
             bool hasPhysicsHit = TryGetNearestPhysicsHit(origin, direction, remainingDistance, out RaycastHit physicsHit);
             float physicsDistance = hasPhysicsHit ? physicsHit.distance : remainingDistance;
 
-            if (TryHitEnergyLink(origin, direction, physicsDistance))
-                energyLinkHit = true;
+            if (TryHitEnergyLink(origin, direction, physicsDistance)) energyLinkHit = true;
 
             if (TryHitRopeLink(origin, direction, physicsDistance, out Vector3 linkHitPoint, out Vector3 linkReflectedDirection))
             {
@@ -109,8 +107,7 @@ public sealed class LaserEmitterRuntime : MonoBehaviour
             AddPoint(physicsHit.point);
             HandlePhysicsHit(physicsHit, receiverInputs, ref origin, ref direction, ref remainingDistance, out bool continueTrace);
 
-            if (!continueTrace)
-                break;
+            if (!continueTrace) break;
         }
 
         DrawVisual();
@@ -119,8 +116,7 @@ public sealed class LaserEmitterRuntime : MonoBehaviour
 
     internal void ClearVisual()
     {
-        if (lineRenderer == null)
-            return;
+        if (lineRenderer == null) return;
 
         lineRenderer.enabled = false;
         lineRenderer.positionCount = 0;
@@ -164,17 +160,16 @@ public sealed class LaserEmitterRuntime : MonoBehaviour
         lineRenderer.SetPropertyBlock(propertyBlock);
     }
 
-    private void HandlePhysicsHit(RaycastHit hit, HashSet<LaserSystemRuntime.ReceiverInput> receiverInputs, ref Vector3 origin, ref Vector3 direction, ref float remainingDistance, out bool continueTrace)
+    private void HandlePhysicsHit(RaycastHit hit, HashSet<LaserSystemManager.ReceiverInput> receiverInputs, ref Vector3 origin, ref Vector3 direction, ref float remainingDistance, out bool continueTrace)
     {
         remainingDistance -= hit.distance;
         continueTrace = false;
 
-        if (LaserSystemRuntime.TryResolveReceiver(hit.collider, out ILaserReceiver receiver))
+        if (LaserSystemManager.TryResolveReceiver(hit.collider, out ILaserReceiver receiver))
         {
-            LaserSystemRuntime.AddDirectInput(receiverInputs, receiver, this);
+            LaserSystemManager.AddDirectInput(receiverInputs, receiver, this);
 
-            if (receiver.BlocksLaser)
-                return;
+            if (receiver.BlocksLaser) return;
 
             ignoredColliders.Add(hit.collider);
             origin = hit.point + direction * raySkin;
@@ -182,8 +177,7 @@ public sealed class LaserEmitterRuntime : MonoBehaviour
             return;
         }
 
-        if (!LaserSystemRuntime.TryResolveMirror(hit.collider, out LaserMirror mirror))
-            return;
+        if (!LaserSystemManager.TryResolveMirror(hit.collider, out LaserMirror mirror)) return;
 
         Vector3 reflectedDirection = mirror.GetReflectedDirection(direction, hit.normal);
         origin = hit.point + reflectedDirection * raySkin;
@@ -193,40 +187,36 @@ public sealed class LaserEmitterRuntime : MonoBehaviour
 
     private bool TryGetNearestPhysicsHit(Vector3 origin, Vector3 direction, float distance, out RaycastHit nearestHit)
     {
-        RaycastHit[] hits = Physics.RaycastAll(origin, direction, distance, collisionMask, QueryTriggerInteraction.Collide);
-        Array.Sort(hits, CompareHitsByDistance);
-
-        for (int i = 0; i < hits.Length; i++)
-        {
-            RaycastHit hit = hits[i];
-
-            if (hit.distance <= raySkin)
-                continue;
-
-            if (ignoredColliders.Contains(hit.collider))
-                continue;
-
-            if (!IsMeaningfulHit(hit.collider))
-                continue;
-
-            nearestHit = hit;
-            return true;
-        }
+        int hitCount = Physics.RaycastNonAlloc(origin, direction, physicsHitBuffer, distance, collisionMask, QueryTriggerInteraction.Collide);
 
         nearestHit = default;
-        return false;
+        float nearestDistance = float.PositiveInfinity;
+        bool hasHit = false;
+
+        for (int i = 0; i < hitCount; i++)
+        {
+            RaycastHit hit = physicsHitBuffer[i];
+
+            if (hit.distance <= raySkin) continue;
+            if (ignoredColliders.Contains(hit.collider)) continue;
+            if (!IsMeaningfulHit(hit.collider)) continue;
+            if (hit.distance >= nearestDistance) continue;
+
+            nearestHit = hit;
+            nearestDistance = hit.distance;
+            hasHit = true;
+        }
+
+        return hasHit;
     }
 
     private bool IsMeaningfulHit(Collider targetCollider)
     {
-        if (targetCollider == null)
-            return false;
+        if (targetCollider == null) return false;
 
-        if (LaserSystemRuntime.TryResolveReceiver(targetCollider, out _))
-            return true;
+        if (LaserSystemManager.TryResolveReceiver(targetCollider, out _)) return true;
 
-        if (LaserSystemRuntime.TryResolveMirror(targetCollider, out _))
-            return true;
+        if (LaserSystemManager.TryResolveMirror(targetCollider, out _)) return true;
 
         return !targetCollider.isTrigger;
     }
@@ -238,14 +228,11 @@ public sealed class LaserEmitterRuntime : MonoBehaviour
 
         LinkManager manager = LinkManager.Instance;
 
-        if (manager == null || manager.Mode.Value != LinkMode.Rope)
-            return false;
+        if (manager == null || manager.Mode.Value != LinkMode.Rope) return false;
 
-        if (!manager.TryGetLinkPath(out Vector3 firstPosition, out Vector3 relayPosition, out Vector3 secondPosition, out bool usesRelay))
-            return false;
+        if (!manager.TryGetLinkPath(out Vector3 firstPosition, out Vector3 relayPosition, out Vector3 secondPosition, out bool usesRelay)) return false;
 
-        if (!TryGetNearestLinkIntersection(origin, direction, firstPosition, usesRelay ? relayPosition : secondPosition, maxSegmentDistance, out LinkIntersection nearest))
-            return false;
+        if (!TryGetNearestLinkIntersection(origin, direction, firstPosition, usesRelay ? relayPosition : secondPosition, maxSegmentDistance, out LinkIntersection nearest)) return false;
 
         if (usesRelay && TryGetNearestLinkIntersection(origin, direction, relayPosition, secondPosition, maxSegmentDistance, out LinkIntersection secondIntersection) && secondIntersection.Distance < nearest.Distance)
             nearest = secondIntersection;
@@ -259,14 +246,11 @@ public sealed class LaserEmitterRuntime : MonoBehaviour
     {
         LinkManager manager = LinkManager.Instance;
 
-        if (manager == null || manager.Mode.Value != LinkMode.Energy)
-            return false;
+        if (manager == null || manager.Mode.Value != LinkMode.Energy) return false;
 
-        if (!manager.TryGetLinkPath(out Vector3 firstPosition, out Vector3 relayPosition, out Vector3 secondPosition, out bool usesRelay))
-            return false;
+        if (!manager.TryGetLinkPath(out Vector3 firstPosition, out Vector3 relayPosition, out Vector3 secondPosition, out bool usesRelay)) return false;
 
-        if (TryGetNearestLinkIntersection(origin, direction, firstPosition, usesRelay ? relayPosition : secondPosition, maxSegmentDistance, out _))
-            return true;
+        if (TryGetNearestLinkIntersection(origin, direction, firstPosition, usesRelay ? relayPosition : secondPosition, maxSegmentDistance, out _)) return true;
 
         return usesRelay && TryGetNearestLinkIntersection(origin, direction, relayPosition, secondPosition, maxSegmentDistance, out _);
     }
@@ -283,24 +267,20 @@ public sealed class LaserEmitterRuntime : MonoBehaviour
 
         float denominator = Cross(rayDirection, segment);
 
-        if (Mathf.Abs(denominator) <= 0.0001f)
-            return false;
+        if (Mathf.Abs(denominator) <= 0.0001f) return false;
 
         Vector2 delta = start - rayOrigin;
         float rayDistance = Cross(delta, segment) / denominator;
         float segmentT = Cross(delta, rayDirection) / denominator;
 
-        if (rayDistance <= raySkin || rayDistance > maxDistance)
-            return false;
+        if (rayDistance <= raySkin || rayDistance > maxDistance) return false;
 
-        if (segmentT < 0f || segmentT > 1f)
-            return false;
+        if (segmentT < 0f || segmentT > 1f) return false;
 
         Vector3 point = origin + direction * rayDistance;
         Vector3 linkPoint = Vector3.Lerp(segmentStart, segmentEnd, segmentT);
 
-        if (Mathf.Abs(point.y - linkPoint.y) > linkHeightTolerance)
-            return false;
+        if (Mathf.Abs(point.y - linkPoint.y) > linkHeightTolerance) return false;
 
         intersection = new LinkIntersection(point, segmentStart, segmentEnd, rayDistance);
         return true;
@@ -311,24 +291,21 @@ public sealed class LaserEmitterRuntime : MonoBehaviour
         Vector3 segmentDirection = segmentEnd - segmentStart;
         segmentDirection.y = 0f;
 
-        if (segmentDirection.sqrMagnitude <= 0.0001f)
-            return -direction;
+        if (segmentDirection.sqrMagnitude <= 0.0001f) return -direction;
 
         segmentDirection.Normalize();
         Vector3 normal = new(-segmentDirection.z, 0f, segmentDirection.x);
         Vector3 reflected = Vector3.Reflect(direction, normal);
         reflected.y = 0f;
 
-        if (reflected.sqrMagnitude <= 0.0001f)
-            return -direction;
+        if (reflected.sqrMagnitude <= 0.0001f) return -direction;
 
         return reflected.normalized;
     }
 
     private void AddPoint(Vector3 point)
     {
-        if (points.Count > 0 && Vector3.Distance(points[^1], point) <= MinimumSegmentLength)
-            return;
+        if (points.Count > 0 && Vector3.Distance(points[^1], point) <= MinimumSegmentLength) return;
 
         points.Add(point);
     }
@@ -337,13 +314,10 @@ public sealed class LaserEmitterRuntime : MonoBehaviour
     {
         direction.y = 0f;
 
-        if (direction.sqrMagnitude <= 0.0001f)
-            return Vector3.forward;
+        if (direction.sqrMagnitude <= 0.0001f) return Vector3.forward;
 
         return direction.normalized;
     }
-
-    private static int CompareHitsByDistance(RaycastHit x, RaycastHit y) => x.distance.CompareTo(y.distance);
 
     private static float Cross(Vector2 a, Vector2 b) => a.x * b.y - a.y * b.x;
 

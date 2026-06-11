@@ -6,8 +6,8 @@ using UnityEngine;
 [RequireComponent(typeof(Interactable))]
 public sealed class RepeaterRuntime : NetworkBehaviour
 {
-    private Interactable interactable;
-    private NetworkObject repeaterObject;
+    [SerializeField] private Interactable interactable;
+    [SerializeField] private NetworkObject repeaterObject;
 
     [ShowInInspector, ReadOnly]
     public bool IsConnected => LinkManager.Instance.IsRelayConnectedTo(repeaterObject);
@@ -18,27 +18,15 @@ public sealed class RepeaterRuntime : NetworkBehaviour
     private bool availabilityInitialized;
     private bool lastAvailability;
 
-    private void Awake()
-    {
-        interactable = GetComponent<Interactable>();
-        repeaterObject = GetComponent<NetworkObject>();
-    }
-
     private void OnEnable()
     {
         interactable.InteractionPerformed += OnInteractionPerformed;
         availabilityInitialized = false;
     }
 
-    private void Update()
-    {
-        RefreshAvailability();
-    }
+    private void Update() => RefreshAvailability();
 
-    private void OnDisable()
-    {
-        interactable.InteractionPerformed -= OnInteractionPerformed;
-    }
+    private void OnDisable() => interactable.InteractionPerformed -= OnInteractionPerformed;
 
     private new void OnDestroy()
     {

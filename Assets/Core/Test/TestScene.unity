@@ -312,7 +312,7 @@ Camera:
     serializedVersion: 2
     m_Bits: 128
   m_RenderingPath: -1
-  m_TargetTexture: {fileID: 711286561}
+  m_TargetTexture: {fileID: 2104330128}
   m_TargetDisplay: 0
   m_TargetEye: 3
   m_HDR: 0
@@ -933,6 +933,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RelayRuntime
   ShowTopMostFoldoutHeaderGroup: 1
+  interactable: {fileID: 644791678}
+  repeaterObject: {fileID: 644791681}
 --- !u!1 &668079025
 GameObject:
   m_ObjectHideFlags: 0
@@ -1083,43 +1085,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 688388413}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!84 &711286561
-RenderTexture:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: _OutlineMaskRT
-  m_ImageContentsHash:
-    serializedVersion: 2
-    Hash: 00000000000000000000000000000000
-  m_IsAlphaChannelOptional: 0
-  serializedVersion: 6
-  m_Width: 3840
-  m_Height: 2160
-  m_AntiAliasing: 1
-  m_MipCount: -1
-  m_DepthStencilFormat: 94
-  m_ColorFormat: 5
-  m_MipMap: 0
-  m_GenerateMips: 0
-  m_SRGB: 0
-  m_UseDynamicScale: 0
-  m_UseDynamicScaleExplicit: 0
-  m_BindMS: 0
-  m_EnableCompatibleFormat: 1
-  m_EnableRandomWrite: 0
-  m_TextureSettings:
-    serializedVersion: 2
-    m_FilterMode: 0
-    m_Aniso: 1
-    m_MipBias: 0
-    m_WrapU: 1
-    m_WrapV: 1
-    m_WrapW: 1
-  m_Dimension: 2
-  m_VolumeDepth: 1
-  m_ShadowSamplingMode: 2
 --- !u!1 &718739761
 GameObject:
   m_ObjectHideFlags: 0
@@ -1346,6 +1311,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 372eacee53b764d428e98f5d0c66624a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DoorRuntime
+  triggerable: {fileID: 788783425}
   visualRoot: {fileID: 688388414}
   blockingColliders:
   - {fileID: 788783421}
@@ -2008,7 +1974,6 @@ MonoBehaviour:
   triggerTarget: {fileID: 1070188291}
   lineRenderer: {fileID: 1070188293}
   laserOrigin: {fileID: 1070188290}
-  activeWhenTriggered: 1
   maxDistance: 40
   maxReflections: 8
   collisionMask:
@@ -2016,7 +1981,6 @@ MonoBehaviour:
     m_Bits: 255
   raySkin: 0.03
   linkInteractionRadius: 0.12
-  linkHeightOffset: 0.25
   linkHeightTolerance: 1
   laserColor: {r: 1, g: 0, b: 0, a: 1}
   width: 0.3
@@ -3232,6 +3196,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ButtonRuntime
   ShowTopMostFoldoutHeaderGroup: 1
+  interactable: {fileID: 1945681012}
+  trigger: {fileID: 1945681011}
   visualRoot: {fileID: 628170964}
   pressedLocalOffset: {x: 0, y: -0.05, z: 0}
   pressTweenDuration: 0.08
@@ -3825,6 +3791,43 @@ Transform:
   m_Children: []
   m_Father: {fileID: 668079027}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!84 &2104330128
+RenderTexture:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: _OutlineMaskRT
+  m_ImageContentsHash:
+    serializedVersion: 2
+    Hash: 00000000000000000000000000000000
+  m_IsAlphaChannelOptional: 0
+  serializedVersion: 6
+  m_Width: 3840
+  m_Height: 2160
+  m_AntiAliasing: 1
+  m_MipCount: -1
+  m_DepthStencilFormat: 94
+  m_ColorFormat: 5
+  m_MipMap: 0
+  m_GenerateMips: 0
+  m_SRGB: 0
+  m_UseDynamicScale: 0
+  m_UseDynamicScaleExplicit: 0
+  m_BindMS: 0
+  m_EnableCompatibleFormat: 1
+  m_EnableRandomWrite: 0
+  m_TextureSettings:
+    serializedVersion: 2
+    m_FilterMode: 0
+    m_Aniso: 1
+    m_MipBias: 0
+    m_WrapU: 1
+    m_WrapV: 1
+    m_WrapW: 1
+  m_Dimension: 2
+  m_VolumeDepth: 1
+  m_ShadowSamplingMode: 2
 --- !u!1 &2139159021
 GameObject:
   m_ObjectHideFlags: 0

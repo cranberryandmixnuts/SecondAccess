@@ -8,6 +8,7 @@ using UnityEngine;
 [RequireComponent(typeof(TriggerTarget))]
 public sealed class DoorRuntime : MonoBehaviour
 {
+    [SerializeField, Required, TitleGroup("References")]
     private TriggerTarget triggerable;
 
     [SerializeField, Required, TitleGroup("References")]
@@ -42,8 +43,6 @@ public sealed class DoorRuntime : MonoBehaviour
 
     private void Awake()
     {
-        triggerable = GetComponent<TriggerTarget>();
-
         closedLocalPosition = visualRoot.localPosition;
         closedLocalRotation = visualRoot.localRotation;
 
