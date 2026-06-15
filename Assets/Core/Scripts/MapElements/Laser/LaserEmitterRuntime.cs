@@ -49,7 +49,6 @@ public sealed class LaserEmitterRuntime : MonoBehaviour
     public float EnergyLinkInputRadius => linkInteractionRadius;
 
     private readonly List<Vector3> points = new();
-    private readonly List<Vector3> linkPathPoints = new();
     private readonly HashSet<Collider> ignoredColliders = new();
     private readonly RaycastHit[] physicsHitBuffer = new RaycastHit[32];
 
@@ -231,9 +230,12 @@ public sealed class LaserEmitterRuntime : MonoBehaviour
 
         if (manager == null || manager.Mode.Value != LinkMode.Rope) return false;
 
-        if (!manager.TryGetLinkPath(linkPathPoints)) return false;
+        if (!manager.TryGetLinkPath(out Vector3 firstPosition, out Vector3 relayPosition, out Vector3 secondPosition, out bool usesRelay)) return false;
 
-        if (!TryGetNearestLinkPathIntersection(origin, direction, linkPathPoints, maxSegmentDistance, out LinkIntersection nearest)) return false;
+        if (!TryGetNearestLinkIntersection(origin, direction, firstPosition, usesRelay ? relayPosition : secondPosition, maxSegmentDistance, out LinkIntersection nearest)) return false;
+
+        if (usesRelay && TryGetNearestLinkIntersection(origin, direction, relayPosition, secondPosition, maxSegmentDistance, out LinkIntersection secondIntersection) && secondIntersection.Distance < nearest.Distance)
+            nearest = secondIntersection;
 
         hitPoint = nearest.Point;
         reflectedDirection = ReflectByLinkSegment(direction, nearest.SegmentStart, nearest.SegmentEnd);
@@ -246,35 +248,11 @@ public sealed class LaserEmitterRuntime : MonoBehaviour
 
         if (manager == null || manager.Mode.Value != LinkMode.Energy) return false;
 
-        if (!manager.TryGetLinkPath(linkPathPoints)) return false;
+        if (!manager.TryGetLinkPath(out Vector3 firstPosition, out Vector3 relayPosition, out Vector3 secondPosition, out bool usesRelay)) return false;
 
-        return TryGetNearestLinkPathIntersection(origin, direction, linkPathPoints, maxSegmentDistance, out _);
-    }
+        if (TryGetNearestLinkIntersection(origin, direction, firstPosition, usesRelay ? relayPosition : secondPosition, maxSegmentDistance, out _)) return true;
 
-    private bool TryGetNearestLinkPathIntersection(Vector3 origin, Vector3 direction, IReadOnlyList<Vector3> path, float maxDistance, out LinkIntersection nearest)
-    {
-        nearest = default;
-
-        if (path.Count < 2)
-            return false;
-
-        bool hasIntersection = false;
-        float nearestDistance = float.PositiveInfinity;
-
-        for (int i = 1; i < path.Count; i++)
-        {
-            if (!TryGetNearestLinkIntersection(origin, direction, path[i - 1], path[i], maxDistance, out LinkIntersection intersection))
-                continue;
-
-            if (intersection.Distance >= nearestDistance)
-                continue;
-
-            nearest = intersection;
-            nearestDistance = intersection.Distance;
-            hasIntersection = true;
-        }
-
-        return hasIntersection;
+        return usesRelay && TryGetNearestLinkIntersection(origin, direction, relayPosition, secondPosition, maxSegmentDistance, out _);
     }
 
     private bool TryGetNearestLinkIntersection(Vector3 origin, Vector3 direction, Vector3 segmentStart, Vector3 segmentEnd, float maxDistance, out LinkIntersection intersection)

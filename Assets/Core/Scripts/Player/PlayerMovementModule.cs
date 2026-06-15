@@ -91,20 +91,29 @@ public sealed class PlayerMovementModule : PlayerModule
 
     private Vector3 ResolveRopeVelocity(Vector3 baseVelocity, LinkManager linkManager, NetworkPlayer self, NetworkPlayer first, NetworkPlayer second)
     {
-        if (!TryGetRopeEndpointState(linkManager, first, second, out Vector3 firstInwardDirection, out Vector3 secondInwardDirection, out float ropeLength))
+        Rigidbody firstBody = first.Body;
+        Rigidbody secondBody = second.Body;
+
+        Vector3 delta = secondBody.position - firstBody.position;
+        delta.y = 0f;
+
+        float distance = delta.magnitude;
+
+        if (distance <= 0.0001f)
             return baseVelocity;
 
+        Vector3 direction = delta / distance;
         bool isFirst = self.NetworkObjectId == first.NetworkObjectId;
         NetworkPlayer other = isFirst ? second : first;
 
         Vector3 otherBaseVelocity = other.Movement.CalculateDesiredVelocity();
-        Vector3 inwardDirection = isFirst ? firstInwardDirection : secondInwardDirection;
+        Vector3 inwardDirection = isFirst ? direction : -direction;
         Vector3 outwardDirection = -inwardDirection;
-        Vector3 otherOutwardDirection = isFirst ? -secondInwardDirection : -firstInwardDirection;
+        Vector3 otherOutwardDirection = isFirst ? direction : -direction;
 
         float slowdownStartDistance = Mathf.Min(linkManager.RopeSoftDistance, linkManager.RopeMaxDistance);
-        float stretchRatio = GetSoftStretchRatio(ropeLength, slowdownStartDistance, linkManager.RopeMaxDistance);
-        float overstretchRatio = GetOverstretchRatio(ropeLength, linkManager.RopeMaxDistance, linkManager.RopeOverstretchDistance);
+        float stretchRatio = GetSoftStretchRatio(distance, slowdownStartDistance, linkManager.RopeMaxDistance);
+        float overstretchRatio = GetOverstretchRatio(distance, linkManager.RopeMaxDistance, linkManager.RopeOverstretchDistance);
 
         Vector3 nextVelocity = baseVelocity;
 
@@ -117,32 +126,10 @@ public sealed class PlayerMovementModule : PlayerModule
         if (overstretchRatio > 0f)
             nextVelocity += inwardDirection * GetRopePullSpeed(overstretchRatio, linkManager.RopeOverstretchPullAcceleration);
 
-        if (TryApplyOwnHardLimitCorrection(linkManager, ropeLength, inwardDirection))
-            nextVelocity = RemoveOwnSeparatingVelocity(nextVelocity, otherBaseVelocity, inwardDirection, otherOutwardDirection);
+        if (TryApplyOwnHardLimitCorrection(linkManager, direction, distance, isFirst))
+            nextVelocity = RemoveOwnSeparatingVelocity(nextVelocity, otherBaseVelocity, direction, inwardDirection, isFirst);
 
         return nextVelocity;
-    }
-
-    private bool TryGetRopeEndpointState(LinkManager linkManager, NetworkPlayer first, NetworkPlayer second, out Vector3 firstInwardDirection, out Vector3 secondInwardDirection, out float ropeLength)
-    {
-        if (linkManager.TryGetRopeEndpointState(out firstInwardDirection, out secondInwardDirection, out ropeLength))
-            return true;
-
-        Vector3 delta = second.Body.position - first.Body.position;
-        delta.y = 0f;
-
-        ropeLength = delta.magnitude;
-
-        if (ropeLength <= 0.0001f)
-        {
-            firstInwardDirection = Vector3.zero;
-            secondInwardDirection = Vector3.zero;
-            return false;
-        }
-
-        firstInwardDirection = delta / ropeLength;
-        secondInwardDirection = -firstInwardDirection;
-        return true;
     }
 
     private Vector3 ApplyOutwardMovementResistance(Vector3 selfVelocity, Vector3 otherVelocity, Vector3 selfOutwardDirection, Vector3 otherOutwardDirection, Vector3 inwardDirection, float stretchRatio, LinkManager linkManager)
@@ -174,26 +161,28 @@ public sealed class PlayerMovementModule : PlayerModule
         return nextVelocity;
     }
 
-    private bool TryApplyOwnHardLimitCorrection(LinkManager linkManager, float ropeLength, Vector3 inwardDirection)
+    private bool TryApplyOwnHardLimitCorrection(LinkManager linkManager, Vector3 direction, float distance, bool isFirst)
     {
         float hardLimitDistance = linkManager.RopeMaxDistance + Mathf.Max(0f, linkManager.RopeOverstretchDistance);
 
-        if (ropeLength <= hardLimitDistance)
+        if (distance <= hardLimitDistance)
             return false;
 
-        float excess = ropeLength - hardLimitDistance;
+        float excess = distance - hardLimitDistance;
         float correction = Mathf.Min(excess * 0.25f, linkManager.RopeHardCorrectionSpeed * Time.fixedDeltaTime);
+        Vector3 inwardDirection = isFirst ? direction : -direction;
 
         Player.Body.MovePosition(Player.Body.position + inwardDirection * correction);
         return true;
     }
 
-    private Vector3 RemoveOwnSeparatingVelocity(Vector3 selfVelocity, Vector3 otherVelocity, Vector3 inwardDirection, Vector3 otherOutwardDirection)
+    private Vector3 RemoveOwnSeparatingVelocity(Vector3 selfVelocity, Vector3 otherVelocity, Vector3 direction, Vector3 inwardDirection, bool isFirst)
     {
-        Vector3 selfOutwardDirection = -inwardDirection;
-        float selfOutwardSpeed = Mathf.Max(0f, Vector3.Dot(selfVelocity, selfOutwardDirection));
-        float otherOutwardSpeed = Mathf.Max(0f, Vector3.Dot(otherVelocity, otherOutwardDirection));
-        float separatingSpeed = selfOutwardSpeed + otherOutwardSpeed;
+        Vector3 firstVelocity = isFirst ? selfVelocity : otherVelocity;
+        Vector3 secondVelocity = isFirst ? otherVelocity : selfVelocity;
+        Vector3 relativeVelocity = secondVelocity - firstVelocity;
+
+        float separatingSpeed = Vector3.Dot(relativeVelocity, direction);
 
         if (separatingSpeed <= 0f)
             return selfVelocity;
