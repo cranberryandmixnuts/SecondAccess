@@ -47,6 +47,7 @@ public sealed class LaserEmitterRuntime : MonoBehaviour
 
     public LayerMask CollisionMask => collisionMask;
     public float EnergyLinkInputRadius => linkInteractionRadius;
+    public bool IsEmitting => triggerTarget.IsTriggered;
 
     private readonly List<Vector3> points = new();
     private readonly HashSet<Collider> ignoredColliders = new();
@@ -70,6 +71,12 @@ public sealed class LaserEmitterRuntime : MonoBehaviour
 
     internal bool Simulate(HashSet<LaserSystemManager.ReceiverInput> receiverInputs)
     {
+        if (!IsEmitting)
+        {
+            ClearVisual();
+            return false;
+        }
+
         points.Clear();
         ignoredColliders.Clear();
 
