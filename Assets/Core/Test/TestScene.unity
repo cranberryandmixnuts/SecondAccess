@@ -356,7 +356,7 @@ Camera:
     serializedVersion: 2
     m_Bits: 128
   m_RenderingPath: -1
-  m_TargetTexture: {fileID: 2054009365}
+  m_TargetTexture: {fileID: 928764585}
   m_TargetDisplay: 0
   m_TargetEye: 3
   m_HDR: 0
@@ -415,6 +415,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LinkModeConverterRuntime
   ShowTopMostFoldoutHeaderGroup: 1
+  interactable: {fileID: 362521455}
   targetMode: 0
   updateInteractableAvailability: 1
 --- !u!114 &362521455
@@ -429,9 +430,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 206aaaa6b4214c046ac97b4c4579d256, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Interactable
-  executionType: 0
   interactionEnabled: 1
-  allowMultipleInteractors: 0
   useHoverOutline: 1
   outlineLayerName: Outline Target
   includeOutlineTargetChildren: 1
@@ -537,13 +536,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 362521453}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: -3, y: 0, z: -5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1063184126}
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 948215969}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &439459532
 GameObject:
@@ -848,9 +847,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 206aaaa6b4214c046ac97b4c4579d256, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Interactable
-  executionType: 0
   interactionEnabled: 1
-  allowMultipleInteractors: 0
   useHoverOutline: 1
   outlineLayerName: Outline Target
   includeOutlineTargetChildren: 1
@@ -956,13 +953,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 644791676}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: -10, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 154081405}
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 948215969}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &644791683
 MonoBehaviour:
@@ -1249,13 +1246,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 718739761}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0.38268343, z: 0, w: 0.92387956}
+  m_LocalRotation: {x: -0, y: 0.38268343, z: -0, w: 0.92387956}
   m_LocalPosition: {x: -10.3, y: 0, z: 10.3}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2082656496}
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 948215969}
   m_LocalEulerAnglesHint: {x: 0, y: 45, z: 0}
 --- !u!114 &718739768
 MonoBehaviour:
@@ -1321,13 +1318,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 788783420}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 7, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 688388414}
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 948215969}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &788783425
 MonoBehaviour:
@@ -1659,13 +1656,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 917828137}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: -6, y: 0, z: -5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1380008311}
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 948215969}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &917828140
 MonoBehaviour:
@@ -1680,6 +1677,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LinkModeConverterRuntime
   ShowTopMostFoldoutHeaderGroup: 1
+  interactable: {fileID: 917828141}
   targetMode: 1
   updateInteractableAvailability: 1
 --- !u!114 &917828141
@@ -1694,9 +1692,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 206aaaa6b4214c046ac97b4c4579d256, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Interactable
-  executionType: 0
   interactionEnabled: 1
-  allowMultipleInteractors: 0
   useHoverOutline: 1
   outlineLayerName: Outline Target
   includeOutlineTargetChildren: 1
@@ -1769,6 +1765,83 @@ MonoBehaviour:
   SwitchTransformSpaceWhenParented: 0
   Interpolate: 1
   SlerpPosition: 0
+--- !u!84 &928764585
+RenderTexture:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: _OutlineMaskRT
+  m_ImageContentsHash:
+    serializedVersion: 2
+    Hash: 00000000000000000000000000000000
+  m_IsAlphaChannelOptional: 0
+  serializedVersion: 6
+  m_Width: 3840
+  m_Height: 2160
+  m_AntiAliasing: 1
+  m_MipCount: -1
+  m_DepthStencilFormat: 94
+  m_ColorFormat: 5
+  m_MipMap: 0
+  m_GenerateMips: 0
+  m_SRGB: 0
+  m_UseDynamicScale: 0
+  m_UseDynamicScaleExplicit: 0
+  m_BindMS: 0
+  m_EnableCompatibleFormat: 1
+  m_EnableRandomWrite: 0
+  m_TextureSettings:
+    serializedVersion: 2
+    m_FilterMode: 0
+    m_Aniso: 1
+    m_MipBias: 0
+    m_WrapU: 1
+    m_WrapV: 1
+    m_WrapW: 1
+  m_Dimension: 2
+  m_VolumeDepth: 1
+  m_ShadowSamplingMode: 2
+--- !u!1 &948215968
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 948215969}
+  m_Layer: 0
+  m_Name: MapElements
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &948215969
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 948215968}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1945681009}
+  - {fileID: 788783424}
+  - {fileID: 917828139}
+  - {fileID: 362521459}
+  - {fileID: 644791682}
+  - {fileID: 1070188290}
+  - {fileID: 1203769786}
+  - {fileID: 1769484392}
+  - {fileID: 718739767}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1063184123
 GameObject:
   m_ObjectHideFlags: 0
@@ -1981,13 +2054,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1070188284}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: -10, y: 0, z: 4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 501908943}
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 948215969}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1070188291
 MonoBehaviour:
@@ -2308,6 +2381,7 @@ GameObject:
   - component: {fileID: 1203769783}
   - component: {fileID: 1203769788}
   - component: {fileID: 1203769787}
+  - component: {fileID: 1203769789}
   m_Layer: 0
   m_Name: LaserReceiver
   m_TagString: Untagged
@@ -2415,13 +2489,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1203769779}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1817039378}
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 948215969}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1203769787
 MonoBehaviour:
@@ -2449,8 +2523,30 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9e8e6bfb152fcc843ac22917f2a134dd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Trigger
+  triggerType: 0
   targets:
   - {fileID: 788783425}
+  signalEffect: {fileID: 1203769789}
+--- !u!114 &1203769789
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1203769779}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e36b3cf5947f7848900732c0893bfd8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TriggerSignalEffect
+  signalMaterial: {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  signalColor: {r: 1, g: 1, b: 1, a: 1}
+  signalLength: 5
+  signalThickness: 0.1
+  heightOffset: 0.3
+  startAngle: 15
+  duration: 0.2
+  emissionIntensity: 1.2
 --- !u!1 &1380008310
 GameObject:
   m_ObjectHideFlags: 0
@@ -2936,6 +3032,7 @@ GameObject:
   - component: {fileID: 1769484389}
   - component: {fileID: 1769484388}
   - component: {fileID: 1769484393}
+  - component: {fileID: 1769484394}
   m_Layer: 0
   m_Name: LaserInverseReceiver
   m_TagString: Untagged
@@ -2955,7 +3052,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9e8e6bfb152fcc843ac22917f2a134dd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Trigger
+  triggerType: 0
   targets: []
+  signalEffect: {fileID: 1769484394}
 --- !u!65 &1769484389
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -3056,13 +3155,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1769484386}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: -10, y: 0, z: 10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 439459533}
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 948215969}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1769484393
 MonoBehaviour:
@@ -3078,6 +3177,26 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LaserInverseReceiverRuntime
   trigger: {fileID: 1769484388}
   blocksLaser: 1
+--- !u!114 &1769484394
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1769484386}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e36b3cf5947f7848900732c0893bfd8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TriggerSignalEffect
+  signalMaterial: {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  signalColor: {r: 1, g: 1, b: 1, a: 1}
+  signalLength: 5
+  signalThickness: 0.1
+  heightOffset: 0.3
+  startAngle: 15
+  duration: 0.2
+  emissionIntensity: 1.2
 --- !u!1 &1817039377
 GameObject:
   m_ObjectHideFlags: 0
@@ -3183,6 +3302,7 @@ GameObject:
   - component: {fileID: 1945681012}
   - component: {fileID: 1945681011}
   - component: {fileID: 1945681010}
+  - component: {fileID: 1945681015}
   m_Layer: 6
   m_Name: Button
   m_TagString: Untagged
@@ -3219,13 +3339,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1945681005}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 628170964}
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 948215969}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1945681010
 MonoBehaviour:
@@ -3258,8 +3378,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9e8e6bfb152fcc843ac22917f2a134dd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Trigger
+  triggerType: 0
   targets:
   - {fileID: 1070188291}
+  signalEffect: {fileID: 1945681015}
 --- !u!114 &1945681012
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3272,9 +3394,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 206aaaa6b4214c046ac97b4c4579d256, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Interactable
-  executionType: 0
   interactionEnabled: 1
-  allowMultipleInteractors: 0
   useHoverOutline: 1
   outlineLayerName: Outline Target
   includeOutlineTargetChildren: 1
@@ -3351,6 +3471,26 @@ MonoBehaviour:
   SwitchTransformSpaceWhenParented: 0
   Interpolate: 1
   SlerpPosition: 0
+--- !u!114 &1945681015
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1945681005}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e36b3cf5947f7848900732c0893bfd8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TriggerSignalEffect
+  signalMaterial: {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  signalColor: {r: 1, g: 1, b: 1, a: 1}
+  signalLength: 5
+  signalThickness: 0.1
+  heightOffset: 0.3
+  startAngle: 15
+  duration: 0.2
+  emissionIntensity: 1.2
 --- !u!1 &2025561739
 GameObject:
   m_ObjectHideFlags: 0
@@ -3616,43 +3756,6 @@ LineRenderer:
   m_UseWorldSpace: 1
   m_Loop: 0
   m_ApplyActiveColorSpace: 1
---- !u!84 &2054009365
-RenderTexture:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: _OutlineMaskRT
-  m_ImageContentsHash:
-    serializedVersion: 2
-    Hash: 00000000000000000000000000000000
-  m_IsAlphaChannelOptional: 0
-  serializedVersion: 6
-  m_Width: 3840
-  m_Height: 2160
-  m_AntiAliasing: 1
-  m_MipCount: -1
-  m_DepthStencilFormat: 94
-  m_ColorFormat: 5
-  m_MipMap: 0
-  m_GenerateMips: 0
-  m_SRGB: 0
-  m_UseDynamicScale: 0
-  m_UseDynamicScaleExplicit: 0
-  m_BindMS: 0
-  m_EnableCompatibleFormat: 1
-  m_EnableRandomWrite: 0
-  m_TextureSettings:
-    serializedVersion: 2
-    m_FilterMode: 0
-    m_Aniso: 1
-    m_MipBias: 0
-    m_WrapU: 1
-    m_WrapV: 1
-    m_WrapW: 1
-  m_Dimension: 2
-  m_VolumeDepth: 1
-  m_ShadowSamplingMode: 2
 --- !u!1 &2082656495
 GameObject:
   m_ObjectHideFlags: 0
@@ -3962,16 +4065,8 @@ SceneRoots:
   - {fileID: 1478388512}
   - {fileID: 668079027}
   - {fileID: 863617813}
-  - {fileID: 1945681009}
-  - {fileID: 788783424}
   - {fileID: 814506992}
   - {fileID: 2139159023}
   - {fileID: 2037916739}
-  - {fileID: 917828139}
-  - {fileID: 362521459}
-  - {fileID: 644791682}
-  - {fileID: 1070188290}
-  - {fileID: 1203769786}
-  - {fileID: 1769484392}
-  - {fileID: 718739767}
   - {fileID: 275126930}
+  - {fileID: 948215969}

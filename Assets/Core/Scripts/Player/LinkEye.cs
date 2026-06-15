@@ -27,7 +27,7 @@ public sealed class LinkEye : MonoBehaviour
     private float heightOffset = 0f;
 
     [SerializeField, TitleGroup("Camera")]
-    private Vector3 cameraOffset = new(0f, 12f, -6f);
+    private Vector3 cameraOffset = new(0f, 16f, -3f);
 
     public InteractionSource InteractionSource => interactionSource;
     public float NormalizedPosition { get; private set; }

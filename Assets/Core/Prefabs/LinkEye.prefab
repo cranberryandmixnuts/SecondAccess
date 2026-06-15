@@ -145,9 +145,7 @@ MonoBehaviour:
   minimumScrollMagnitude: 0.01
   moveSmoothTime: 0.15
   heightOffset: 0
-  cameraOffset: {x: 0, y: 12, z: -6}
-  cameraMoveSharpness: 12
-  cameraRotationSharpness: 20
+  cameraOffset: {x: 0, y: 16, z: -3}
 --- !u!54 &-7546801117399695422
 Rigidbody:
   m_ObjectHideFlags: 0
