@@ -6,6 +6,7 @@ using UnityEngine;
 [RequireComponent(typeof(Interactable))]
 public sealed class LinkModeConverterRuntime : NetworkBehaviour
 {
+    [SerializeField, Required]
     private Interactable interactable;
 
     [SerializeField, TitleGroup("Converter")]
@@ -17,15 +18,33 @@ public sealed class LinkModeConverterRuntime : NetworkBehaviour
     private bool availabilityInitialized;
     private bool lastAvailability;
 
-    private void Awake() => interactable = GetComponent<Interactable>();
+    private void Reset()
+    {
+        interactable = GetComponent<Interactable>();
+    }
+
+    private void OnValidate()
+    {
+        if (interactable == null)
+            interactable = GetComponent<Interactable>();
+    }
+
+    private void Awake()
+    {
+        if (interactable == null)
+            interactable = GetComponent<Interactable>();
+    }
 
     private void OnEnable()
     {
-        interactable.InteractionPerformed += OnInteractionPerformed;
+        interactable.InteractionStarted += OnInteractionStarted;
         availabilityInitialized = false;
     }
 
-    private void OnDisable() => interactable.InteractionPerformed -= OnInteractionPerformed;
+    private void OnDisable()
+    {
+        interactable.InteractionStarted -= OnInteractionStarted;
+    }
 
     private void Update()
     {
@@ -35,7 +54,13 @@ public sealed class LinkModeConverterRuntime : NetworkBehaviour
         RefreshAvailability();
     }
 
-    private void OnInteractionPerformed(InteractionSource source) => RequestConvertRpc();
+    private void OnInteractionStarted(InteractionSource source)
+    {
+        if (!IsSpawned)
+            return;
+
+        RequestConvertRpc();
+    }
 
     private void RefreshAvailability()
     {
@@ -50,5 +75,8 @@ public sealed class LinkModeConverterRuntime : NetworkBehaviour
     }
 
     [Rpc(SendTo.Server)]
-    private void RequestConvertRpc() => LinkManager.Instance.TrySetMode(targetMode);
+    private void RequestConvertRpc()
+    {
+        LinkManager.Instance.TrySetMode(targetMode);
+    }
 }

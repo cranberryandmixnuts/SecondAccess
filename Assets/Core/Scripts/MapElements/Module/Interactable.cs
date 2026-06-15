@@ -3,23 +3,11 @@ using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
-public enum InteractionExecutionType
-{
-    Instant,
-    Hold
-}
-
 [RequireComponent(typeof(Collider))]
 public sealed class Interactable : MonoBehaviour
 {
     [SerializeField]
-    private InteractionExecutionType executionType = InteractionExecutionType.Instant;
-
-    [SerializeField]
     private bool interactionEnabled = true;
-
-    [SerializeField]
-    private bool allowMultipleInteractors;
 
     [Title("Outline")]
     [SerializeField]
@@ -34,20 +22,15 @@ public sealed class Interactable : MonoBehaviour
     [SerializeField]
     private List<GameObject> outlineTargets = new();
 
-    public InteractionExecutionType ExecutionType => executionType;
     public bool InteractionEnabled => interactionEnabled;
-
     public int HoveredSourceCount => hoveredSources.Count;
-
     public int InteractingSourceCount => interactingSources.Count;
-
     public bool IsHovered => hoveredSources.Count > 0;
     public bool IsBeingInteractedWith => interactingSources.Count > 0;
 
     public event Action<InteractionSource> HoverEntered;
     public event Action<InteractionSource> HoverExited;
     public event Action<InteractionSource> InteractionStarted;
-    public event Action<InteractionSource> InteractionPerformed;
     public event Action<InteractionSource> InteractionEnded;
     public event Action<bool> InteractionEnabledChanged;
 
@@ -57,42 +40,19 @@ public sealed class Interactable : MonoBehaviour
 
     private void OnDisable()
     {
+        EndAllInteractions();
+
         SetOutlineActive(false);
         hoveredSources.Clear();
-        interactingSources.Clear();
     }
 
     public bool CanHover() => interactionEnabled && isActiveAndEnabled;
 
-    public bool CanInteract(InteractionSource source)
-    {
-        if (!CanHover())
-            return false;
-
-        if (allowMultipleInteractors)
-            return true;
-
-        return interactingSources.Count == 0 || interactingSources.Contains(source);
-    }
-
-    public bool TryPerformInteraction(InteractionSource source)
-    {
-        if (executionType != InteractionExecutionType.Instant)
-            return false;
-
-        if (!CanInteract(source))
-            return false;
-
-        InteractionPerformed?.Invoke(source);
-        return true;
-    }
+    public bool CanInteract() => CanHover();
 
     public bool TryBeginInteraction(InteractionSource source)
     {
-        if (executionType != InteractionExecutionType.Hold)
-            return false;
-
-        if (!CanInteract(source))
+        if (!CanInteract())
             return false;
 
         if (!interactingSources.Add(source))
@@ -118,16 +78,19 @@ public sealed class Interactable : MonoBehaviour
 
         interactionEnabled = value;
 
-        if (!interactionEnabled || hoveredSources.Count == 0)
-            SetOutlineActive(false);
-        else
-            SetOutlineActive(true);
+        if (!interactionEnabled)
+            EndAllInteractions();
+
+        SetOutlineActive(interactionEnabled && hoveredSources.Count > 0);
 
         InteractionEnabledChanged?.Invoke(interactionEnabled);
     }
 
     public void NotifyHoverEnter(InteractionSource source)
     {
+        if (!CanHover())
+            return;
+
         if (!hoveredSources.Add(source))
             return;
 
@@ -146,6 +109,18 @@ public sealed class Interactable : MonoBehaviour
             SetOutlineActive(false);
 
         HoverExited?.Invoke(source);
+    }
+
+    private void EndAllInteractions()
+    {
+        if (interactingSources.Count == 0)
+            return;
+
+        List<InteractionSource> sources = new(interactingSources);
+        interactingSources.Clear();
+
+        for (int i = 0; i < sources.Count; i++)
+            InteractionEnded?.Invoke(sources[i]);
     }
 
     private void SetOutlineActive(bool active)

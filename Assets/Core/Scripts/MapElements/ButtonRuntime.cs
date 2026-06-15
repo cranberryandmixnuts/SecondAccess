@@ -28,10 +28,9 @@ public sealed class ButtonRuntime : NetworkBehaviour
     private Ease pressEase = Ease.OutQuad;
 
     public bool IsPressed => pressedSourceCount.Value > 0;
-
     public int ActiveSourceCount => pressedSourceCount.Value;
 
-    private readonly HashSet<ulong> activeClientIds = new();
+    private readonly HashSet<string> activeSourceKeys = new();
 
     private readonly NetworkVariable<int> pressedSourceCount = new(
         0,
@@ -42,10 +41,34 @@ public sealed class ButtonRuntime : NetworkBehaviour
     private Tween pressTween;
     private Vector3 releasedLocalPosition;
 
+    private void Reset()
+    {
+        interactable = GetComponent<Interactable>();
+        trigger = GetComponent<Trigger>();
+        visualRoot = transform;
+    }
+
+    private void OnValidate()
+    {
+        if (interactable == null)
+            interactable = GetComponent<Interactable>();
+
+        if (trigger == null)
+            trigger = GetComponent<Trigger>();
+    }
+
     private void Awake()
     {
+        if (interactable == null)
+            interactable = GetComponent<Interactable>();
+
+        if (trigger == null)
+            trigger = GetComponent<Trigger>();
+
+        if (visualRoot != null)
+            releasedLocalPosition = visualRoot.localPosition;
+
         interactable.InteractionStarted += OnInteractionStarted;
-        interactable.InteractionPerformed += OnInteractionPerformed;
         interactable.InteractionEnded += OnInteractionEnded;
         interactable.InteractionEnabledChanged += OnInteractionEnabledChanged;
     }
@@ -58,7 +81,13 @@ public sealed class ButtonRuntime : NetworkBehaviour
         UpdateVisualState(true);
     }
 
-    public override void OnNetworkDespawn() => pressedSourceCount.OnValueChanged -= OnPressedSourceCountChanged;
+    public override void OnNetworkDespawn()
+    {
+        if (IsServer)
+            ClearServerSustain();
+
+        pressedSourceCount.OnValueChanged -= OnPressedSourceCountChanged;
+    }
 
     private void OnDisable()
     {
@@ -66,40 +95,46 @@ public sealed class ButtonRuntime : NetworkBehaviour
 
         if (visualRoot != null)
             visualRoot.localPosition = releasedLocalPosition;
+
+        if (IsServer)
+            ClearServerSustain();
     }
 
     private new void OnDestroy()
     {
         base.OnDestroy();
 
+        if (interactable == null)
+            return;
+
         interactable.InteractionStarted -= OnInteractionStarted;
-        interactable.InteractionPerformed -= OnInteractionPerformed;
         interactable.InteractionEnded -= OnInteractionEnded;
         interactable.InteractionEnabledChanged -= OnInteractionEnabledChanged;
     }
 
     private void OnInteractionStarted(InteractionSource source)
     {
-        if (interactable.ExecutionType != InteractionExecutionType.Hold)
+        if (!IsSpawned)
             return;
 
-        RequestBeginHoldRpc();
-    }
-
-    private void OnInteractionPerformed(InteractionSource source)
-    {
-        if (interactable.ExecutionType != InteractionExecutionType.Instant)
+        if (trigger.TriggerType == TriggerType.Single)
+        {
+            RequestSinglePressRpc();
             return;
+        }
 
-        RequestInstantPressRpc();
+        RequestBeginSustainRpc(source.SourceKey);
     }
 
     private void OnInteractionEnded(InteractionSource source)
     {
-        if (interactable.ExecutionType != InteractionExecutionType.Hold)
+        if (!IsSpawned)
             return;
 
-        RequestEndHoldRpc();
+        if (trigger.TriggerType != TriggerType.Hold)
+            return;
+
+        RequestEndSustainRpc(source.SourceKey);
     }
 
     private void OnInteractionEnabledChanged(bool enabled)
@@ -107,8 +142,8 @@ public sealed class ButtonRuntime : NetworkBehaviour
         if (enabled)
             return;
 
-        if (IsSpawned)
-            RequestEndHoldRpc();
+        if (IsServer)
+            ClearServerSustain();
     }
 
     private void OnPressedSourceCountChanged(int previous, int current)
@@ -117,40 +152,64 @@ public sealed class ButtonRuntime : NetworkBehaviour
     }
 
     [Rpc(SendTo.Server)]
-    private void RequestInstantPressRpc()
+    private void RequestSinglePressRpc()
     {
+        if (trigger.TriggerType != TriggerType.Single)
+            return;
+
         trigger.TriggerOnce();
         PlayInstantPressPulseRpc();
     }
 
     [Rpc(SendTo.Server)]
-    private void RequestBeginHoldRpc(RpcParams rpcParams = default)
+    private void RequestBeginSustainRpc(string sourceKey, RpcParams rpcParams = default)
     {
-        ulong clientId = rpcParams.Receive.SenderClientId;
-
-        if (!activeClientIds.Add(clientId))
+        if (trigger.TriggerType != TriggerType.Hold)
             return;
 
-        pressedSourceCount.Value = activeClientIds.Count;
-        trigger.BeginSustain(this, clientId.ToString());
+        string networkSourceKey = GetNetworkSourceKey(rpcParams.Receive.SenderClientId, sourceKey);
+
+        if (!activeSourceKeys.Add(networkSourceKey))
+            return;
+
+        pressedSourceCount.Value = activeSourceKeys.Count;
+        trigger.BeginSustain(this, networkSourceKey);
     }
 
     [Rpc(SendTo.Server)]
-    private void RequestEndHoldRpc(RpcParams rpcParams = default)
+    private void RequestEndSustainRpc(string sourceKey, RpcParams rpcParams = default)
     {
-        ulong clientId = rpcParams.Receive.SenderClientId;
-
-        if (!activeClientIds.Remove(clientId))
+        if (trigger.TriggerType != TriggerType.Hold)
             return;
 
-        pressedSourceCount.Value = activeClientIds.Count;
-        trigger.EndSustain(this, clientId.ToString());
+        string networkSourceKey = GetNetworkSourceKey(rpcParams.Receive.SenderClientId, sourceKey);
+
+        if (!activeSourceKeys.Remove(networkSourceKey))
+            return;
+
+        pressedSourceCount.Value = activeSourceKeys.Count;
+        trigger.EndSustain(this, networkSourceKey);
     }
 
     [Rpc(SendTo.Everyone)]
     private void PlayInstantPressPulseRpc()
     {
         PlayInstantPressPulse();
+    }
+
+    private void ClearServerSustain()
+    {
+        if (activeSourceKeys.Count == 0)
+            return;
+
+        List<string> sourceKeys = new(activeSourceKeys);
+        activeSourceKeys.Clear();
+
+        for (int i = 0; i < sourceKeys.Count; i++)
+            trigger.EndSustain(this, sourceKeys[i]);
+
+        if (IsSpawned)
+            pressedSourceCount.Value = 0;
     }
 
     private void UpdateVisualState(bool immediate)
@@ -205,4 +264,6 @@ public sealed class ButtonRuntime : NetworkBehaviour
 
         pressTween = null;
     }
+
+    private string GetNetworkSourceKey(ulong clientId, string sourceKey) => clientId + ":" + sourceKey;
 }

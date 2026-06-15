@@ -2,12 +2,48 @@ using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
+public enum TriggerType
+{
+    Single,
+    Hold
+}
+
 public sealed class Trigger : MonoBehaviour
 {
     [SerializeField]
+    private TriggerType triggerType = TriggerType.Single;
+
+    [SerializeField]
     private List<TriggerTarget> targets = new();
 
+    public TriggerType TriggerType => triggerType;
     public IReadOnlyList<TriggerTarget> Targets => targets;
+
+    public void BeginTrigger(Component source) => BeginTrigger(source, string.Empty);
+
+    public void BeginTrigger(Component source, string sourceKey)
+    {
+        switch (triggerType)
+        {
+            case TriggerType.Single:
+                TriggerOnce();
+                break;
+
+            case TriggerType.Hold:
+                BeginSustain(source, sourceKey);
+                break;
+        }
+    }
+
+    public void EndTrigger(Component source) => EndTrigger(source, string.Empty);
+
+    public void EndTrigger(Component source, string sourceKey)
+    {
+        if (triggerType != TriggerType.Hold)
+            return;
+
+        EndSustain(source, sourceKey);
+    }
 
     public void TriggerOnce()
     {

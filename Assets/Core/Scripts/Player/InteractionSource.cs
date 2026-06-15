@@ -5,10 +5,15 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(Collider))]
 public sealed class InteractionSource : MonoBehaviour
 {
+    private static int nextSourceKey;
+
+    public string SourceKey { get; private set; }
     public Interactable HoveredInteractable { get; private set; }
     public Interactable ActiveInteractable { get; private set; }
 
     private readonly Dictionary<Interactable, int> overlapCounts = new();
+
+    private void Awake() => SourceKey = (++nextSourceKey).ToString();
 
     private void OnDisable()
     {
@@ -35,11 +40,11 @@ public sealed class InteractionSource : MonoBehaviour
 
     public bool TryStartCurrentInteraction()
     {
-        if (HoveredInteractable == null)
+        if (ActiveInteractable != null)
             return false;
 
-        if (HoveredInteractable.ExecutionType == InteractionExecutionType.Instant)
-            return HoveredInteractable.TryPerformInteraction(this);
+        if (HoveredInteractable == null)
+            return false;
 
         if (!HoveredInteractable.TryBeginInteraction(this))
             return false;
@@ -122,8 +127,7 @@ public sealed class InteractionSource : MonoBehaviour
 
     private Interactable ResolveInteractable(Collider targetCollider)
     {
-        
-        if (targetCollider.TryGetComponent<Interactable>(out var interactable))
+        if (targetCollider.TryGetComponent(out Interactable interactable))
             return interactable;
 
         return targetCollider.GetComponentInParent<Interactable>();

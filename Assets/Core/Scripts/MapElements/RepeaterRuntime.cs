@@ -6,35 +6,75 @@ using UnityEngine;
 [RequireComponent(typeof(Interactable))]
 public sealed class RepeaterRuntime : NetworkBehaviour
 {
-    [SerializeField] private Interactable interactable;
-    [SerializeField] private NetworkObject repeaterObject;
+    [SerializeField, Required]
+    private Interactable interactable;
+
+    [SerializeField, Required]
+    private NetworkObject repeaterObject;
 
     [ShowInInspector, ReadOnly]
-    public bool IsConnected => LinkManager.Instance.IsRelayConnectedTo(repeaterObject);
+    public bool IsConnected => LinkManager.Instance != null && LinkManager.Instance.IsRelayConnectedTo(repeaterObject);
 
     [ShowInInspector, ReadOnly]
-    public bool IsInteractableAvailable => LinkManager.Instance.CanToggleRelay(repeaterObject);
+    public bool IsInteractableAvailable => LinkManager.Instance != null && LinkManager.Instance.CanToggleRelay(repeaterObject);
 
     private bool availabilityInitialized;
     private bool lastAvailability;
 
+    private void Reset()
+    {
+        interactable = GetComponent<Interactable>();
+        repeaterObject = GetComponent<NetworkObject>();
+    }
+
+    private void OnValidate()
+    {
+        if (interactable == null)
+            interactable = GetComponent<Interactable>();
+
+        if (repeaterObject == null)
+            repeaterObject = GetComponent<NetworkObject>();
+    }
+
+    private void Awake()
+    {
+        if (interactable == null)
+            interactable = GetComponent<Interactable>();
+
+        if (repeaterObject == null)
+            repeaterObject = GetComponent<NetworkObject>();
+    }
+
     private void OnEnable()
     {
-        interactable.InteractionPerformed += OnInteractionPerformed;
+        interactable.InteractionStarted += OnInteractionStarted;
         availabilityInitialized = false;
     }
 
     private void Update() => RefreshAvailability();
 
-    private void OnDisable() => interactable.InteractionPerformed -= OnInteractionPerformed;
+    private void OnDisable()
+    {
+        interactable.InteractionStarted -= OnInteractionStarted;
+    }
 
     private new void OnDestroy()
     {
         base.OnDestroy();
-        interactable.InteractionPerformed -= OnInteractionPerformed;
+
+        if (interactable == null)
+            return;
+
+        interactable.InteractionStarted -= OnInteractionStarted;
     }
 
-    private void OnInteractionPerformed(InteractionSource source) => RequestToggleRelayRpc();
+    private void OnInteractionStarted(InteractionSource source)
+    {
+        if (!IsSpawned)
+            return;
+
+        RequestToggleRelayRpc();
+    }
 
     private void RefreshAvailability()
     {
