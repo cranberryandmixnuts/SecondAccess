@@ -70,6 +70,9 @@ public sealed class LinkManager : NetworkSingleton<LinkManager, SceneScope>
 
         RegisterExistingPlayers();
         ValidateRegisteredObjects();
+
+        if (Mode.Value == LinkMode.Energy && HasTwoPlayers)
+            EvaluateEnergyDistance();
     }
 
     public void RegisterPlayer(NetworkPlayer player)
@@ -517,8 +520,8 @@ public sealed class LinkManager : NetworkSingleton<LinkManager, SceneScope>
 
         energyGameOverLogged = true;
 
-        Debug.Log($"Energy link exceeded max distance. GameOver placeholder. Distance={distance:0.00}, Max={energyMaxDistance:0.00}");
-        ReportEnergyGameOverRpc(distance, 0f, energyMaxDistance, false);
+        Debug.Log($"Energy link exceeded max distance. Distance={distance:0.00}, Max={energyMaxDistance:0.00}");
+        RequestFailScene();
     }
 
     private void EvaluateRelayEnergyDistance(NetworkPlayer first, NetworkPlayer second, Vector3 relayPosition)
@@ -534,19 +537,18 @@ public sealed class LinkManager : NetworkSingleton<LinkManager, SceneScope>
 
         energyGameOverLogged = true;
 
-        Debug.Log($"Energy relay link exceeded max segment distance. GameOver placeholder. First={firstDistance:0.00}, Second={secondDistance:0.00}, Max={energyMaxDistance:0.00}");
-        ReportEnergyGameOverRpc(firstDistance, secondDistance, energyMaxDistance, true);
+        Debug.Log($"Energy relay link exceeded max segment distance. First={firstDistance:0.00}, Second={secondDistance:0.00}, Max={energyMaxDistance:0.00}");
+        RequestFailScene();
     }
 
-    [Rpc(SendTo.NotServer)]
-    private void ReportEnergyGameOverRpc(float firstDistance, float secondDistance, float maxDistance, bool usesRelay)
+    private void RequestFailScene()
     {
-        if (usesRelay)
+        if (!MultiplayerRoomManager.HasInstance)
         {
-            Debug.Log($"Energy relay link exceeded max segment distance. GameOver placeholder. First={firstDistance:0.00}, Second={secondDistance:0.00}, Max={maxDistance:0.00}");
+            Debug.LogError("[SecondAccess] Energy link failed, but MultiplayerRoomManager does not exist.", this);
             return;
         }
 
-        Debug.Log($"Energy link exceeded max distance. GameOver placeholder. Distance={firstDistance:0.00}, Max={maxDistance:0.00}");
+        MultiplayerRoomManager.Instance.TryEndGameWithFailScene();
     }
 }

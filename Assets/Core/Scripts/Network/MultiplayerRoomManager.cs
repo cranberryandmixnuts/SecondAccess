@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
@@ -6,6 +7,7 @@ using Sirenix.OdinInspector;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 [RequireComponent(typeof(NetworkObject))]
 public sealed class MultiplayerRoomManager : NetworkSingleton<MultiplayerRoomManager, SceneScope>
@@ -31,15 +33,25 @@ public sealed class MultiplayerRoomManager : NetworkSingleton<MultiplayerRoomMan
     [TabGroup("MultiplayerRoomManager", "Spawn"), Required, SerializeField]
     private Transform player2SpawnPoint;
 
+    [TabGroup("MultiplayerRoomManager", "Scenes"), SerializeField]
+    private string failSceneName = "Fail";
+
+    [TabGroup("MultiplayerRoomManager", "Scenes"), SerializeField]
+    private string clearSceneName = "Clear";
+
     private readonly List<ulong> joinedClientIds = new();
     private readonly Dictionary<ulong, NetworkObject> playerObjectsByClientId = new();
 
     private bool callbacksBound;
     private bool gameStarted;
+    private bool endingGame;
+    private bool suppressDisconnectMenu;
 
     public bool IsGameStarted => gameStarted;
     public int ConnectedPlayerCount => joinedClientIds.Count;
     public string LocalRoomAddress => GetLocalIPv4Address();
+    public string FailSceneName => failSceneName;
+    public string ClearSceneName => clearSceneName;
 
     public event Action<string> StatusChanged;
     public event Action GameStarted;
@@ -52,6 +64,8 @@ public sealed class MultiplayerRoomManager : NetworkSingleton<MultiplayerRoomMan
         ConfigureTransport(localFallbackAddress, hostListenAddress);
         BindNetworkCallbacks();
         ResetRoomState();
+        endingGame = false;
+        suppressDisconnectMenu = false;
 
         bool started = NetworkManager.Singleton.StartHost();
 
@@ -76,6 +90,8 @@ public sealed class MultiplayerRoomManager : NetworkSingleton<MultiplayerRoomMan
         ConfigureTransport(targetAddress, null);
         BindNetworkCallbacks();
         ResetRoomState();
+        endingGame = false;
+        suppressDisconnectMenu = false;
 
         bool started = NetworkManager.Singleton.StartClient();
 
@@ -96,7 +112,35 @@ public sealed class MultiplayerRoomManager : NetworkSingleton<MultiplayerRoomMan
             NetworkManager.Singleton.Shutdown();
 
         ResetRoomState();
+        endingGame = false;
+        suppressDisconnectMenu = false;
         StatusChanged?.Invoke("네트워크 종료");
+    }
+
+    public bool TryEndGameWithFailScene() => TryEndGameToScene(failSceneName);
+
+    public bool TryEndGameWithClearScene() => TryEndGameToScene(clearSceneName);
+
+    public bool TryEndGameToScene(string sceneName)
+    {
+        if (!NetworkManager.Singleton.IsServer)
+            return false;
+
+        if (endingGame)
+            return false;
+
+        if (string.IsNullOrWhiteSpace(sceneName))
+        {
+            Debug.LogError("[SecondAccess] End game scene name is empty.", this);
+            return false;
+        }
+
+        endingGame = true;
+        suppressDisconnectMenu = true;
+
+        EndGameClientRpc(sceneName);
+        StartCoroutine(EndGameHostRoutine(sceneName));
+        return true;
     }
 
     protected override void NetworkSingletonOnDestroy()
@@ -187,6 +231,9 @@ public sealed class MultiplayerRoomManager : NetworkSingleton<MultiplayerRoomMan
 
         if (clientId == NetworkManager.Singleton.LocalClientId)
         {
+            if (suppressDisconnectMenu)
+                return;
+
             StatusChanged?.Invoke("접속이 끊겼습니다.");
             MainNetworkMenuUI.Instance.ShowAfterDisconnect("접속이 끊겼습니다.");
         }
@@ -274,4 +321,30 @@ public sealed class MultiplayerRoomManager : NetworkSingleton<MultiplayerRoomMan
         MainNetworkMenuUI.Instance.HideForGameStart();
         GameStarted?.Invoke();
     }
+
+    private IEnumerator EndGameHostRoutine(string sceneName)
+    {
+        yield return null;
+
+        ShutdownAndLoadScene(sceneName);
+    }
+
+    private void ShutdownAndLoadScene(string sceneName)
+    {
+        if (NetworkManager.Singleton.IsListening)
+            NetworkManager.Singleton.Shutdown();
+
+        ResetRoomState();
+        SceneManager.LoadScene(sceneName);
+    }
+
+    [Rpc(SendTo.NotServer)]
+    private void EndGameClientRpc(string sceneName)
+    {
+        endingGame = true;
+        suppressDisconnectMenu = true;
+
+        ShutdownAndLoadScene(sceneName);
+    }
+
 }

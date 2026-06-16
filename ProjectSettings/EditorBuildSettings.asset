@@ -6,13 +6,13 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Core/Scenes/TitleScene.unity
-    guid: 99c9720ab356a0642a771bea13969a05
-  - enabled: 1
     path: Assets/Core/Scenes/InGame.unity
     guid: 25cdf0d1cb6ae6245916cab0e2c4c37b
   - enabled: 1
-    path: Assets/Core/Test/TestScene.unity
-    guid: f9cc91cf4e58c534b999ea4478ee682b
+    path: Assets/Core/Scenes/Clear.unity
+    guid: ee97b868b54f90347ab53991a175615c
+  - enabled: 1
+    path: Assets/Core/Scenes/Fail.unity
+    guid: 983c895d577bbab49a1b965bbc3c3345
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
