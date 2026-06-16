@@ -14,6 +14,12 @@ public sealed class LinkEye : MonoBehaviour
     [SerializeField, Required, TitleGroup("References")]
     private Rigidbody body;
 
+    [SerializeField, Required, TitleGroup("Visibility")]
+    private Renderer[] visualRenderers;
+
+    [SerializeField, TitleGroup("Visibility"), MinValue(0f)]
+    private float hideAtOwnerPositionThreshold = 0.001f;
+
     [SerializeField, TitleGroup("Movement"), MinValue(0f)]
     private float scrollSensitivity = 0.05f;
 
@@ -27,7 +33,7 @@ public sealed class LinkEye : MonoBehaviour
     private float heightOffset = 0.5f;
 
     [SerializeField, TitleGroup("Camera")]
-    private Vector3 cameraOffset = new(0f, 16f, -3f);
+    private Vector3 cameraOffset = new(0f, 9f, -6f);
 
     public InteractionSource InteractionSource => interactionSource;
     public float NormalizedPosition { get; private set; }
@@ -38,6 +44,7 @@ public sealed class LinkEye : MonoBehaviour
     private PlayerInteractionModule registeredInteractionModule;
     private Camera ownerCamera;
     private bool registered;
+    private bool visualsVisible = true;
     private float targetNormalizedPosition;
     private float normalizedVelocity;
 
@@ -63,6 +70,25 @@ public sealed class LinkEye : MonoBehaviour
         }
     }
 
+    private void Reset()
+    {
+        interactionSource = GetComponent<InteractionSource>();
+        body = GetComponent<Rigidbody>();
+        visualRenderers = GetComponentsInChildren<Renderer>(true);
+    }
+
+    private void OnValidate()
+    {
+        if (interactionSource == null)
+            interactionSource = GetComponent<InteractionSource>();
+
+        if (body == null)
+            body = GetComponent<Rigidbody>();
+
+        if (visualRenderers == null || visualRenderers.Length == 0)
+            visualRenderers = GetComponentsInChildren<Renderer>(true);
+    }
+
     private void OnEnable()
     {
         if (!IsBound)
@@ -71,6 +97,7 @@ public sealed class LinkEye : MonoBehaviour
         TryRegisterInteractionSource();
         RefreshInteractionEnabled();
         ApplyResolvedPosition();
+        RefreshVisualVisibility();
     }
 
     private void Update()
@@ -83,6 +110,7 @@ public sealed class LinkEye : MonoBehaviour
         UpdateMovementInput();
         UpdateSmoothPosition();
         ApplyResolvedPosition();
+        RefreshVisualVisibility();
     }
 
     private void LateUpdate()
@@ -109,6 +137,7 @@ public sealed class LinkEye : MonoBehaviour
         TryRegisterInteractionSource();
         RefreshInteractionEnabled();
         ApplyResolvedPosition();
+        RefreshVisualVisibility();
         UpdateCamera();
     }
 
@@ -124,6 +153,7 @@ public sealed class LinkEye : MonoBehaviour
 
         RefreshInteractionEnabled();
         ApplyResolvedPosition();
+        RefreshVisualVisibility();
         UpdateCamera();
     }
 
@@ -194,6 +224,19 @@ public sealed class LinkEye : MonoBehaviour
             return;
 
         interactionSource.enabled = CanUseInteraction;
+    }
+
+    private void RefreshVisualVisibility()
+    {
+        bool visible = NormalizedPosition > hideAtOwnerPositionThreshold;
+
+        if (visualsVisible == visible)
+            return;
+
+        visualsVisible = visible;
+
+        for (int i = 0; i < visualRenderers.Length; i++)
+            visualRenderers[i].enabled = visible;
     }
 
     private void ApplyResolvedPosition()
