@@ -9,6 +9,7 @@ public sealed class Player : NetworkBehaviour
 
     [field: SerializeField] public Rigidbody Body { get; private set; }
     [field: SerializeField] public Collider Collider { get; private set; }
+    [field: SerializeField] public Animator Animator { get; private set; }
 
     public PlayerMovementModule Movement { get; private set; }
     public PlayerInteractionModule Interaction { get; private set; }
