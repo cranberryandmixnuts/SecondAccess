@@ -31,7 +31,11 @@ public abstract class NetworkSingleton<T, TScope> : NetworkBehaviour where T : N
 
         Instance = self;
 
-        if (scope.IsGlobal) DontDestroyOnLoad(gameObject);
+        if (scope.IsGlobal)
+        {
+            NetworkObject.DestroyWithScene = false;
+            DontDestroyOnLoad(gameObject);
+        }
 
         NetworkSingletonAwake();
     }
