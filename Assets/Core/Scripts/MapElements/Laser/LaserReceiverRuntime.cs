@@ -14,6 +14,8 @@ public interface ILaserReceiver
 [RequireComponent(typeof(Trigger))]
 public sealed class LaserReceiverRuntime : MonoBehaviour, ILaserReceiver
 {
+    private const string TriggerSourceKey = "LaserReceiver";
+
     private readonly struct LaserInputSource : IEquatable<LaserInputSource>
     {
         public Component Source { get; }
@@ -50,11 +52,8 @@ public sealed class LaserReceiverRuntime : MonoBehaviour, ILaserReceiver
         if (!LaserSystemManager.CanWriteGameplay)
             return;
 
-        foreach (LaserInputSource input in activeInputs)
-        {
-            if (input.Source != null)
-                trigger.EndSustain(input.Source, input.Key);
-        }
+        if (IsLasered)
+            trigger.EndTrigger(this, TriggerSourceKey);
 
         activeInputs.Clear();
     }
@@ -68,16 +67,21 @@ public sealed class LaserReceiverRuntime : MonoBehaviour, ILaserReceiver
 
         if (active)
         {
+            bool wasLasered = IsLasered;
+
             if (!activeInputs.Add(input))
                 return;
 
-            trigger.BeginSustain(source, sourceKey);
+            if (!wasLasered)
+                trigger.BeginTrigger(this, TriggerSourceKey);
+
             return;
         }
 
         if (!activeInputs.Remove(input))
             return;
 
-        trigger.EndSustain(source, sourceKey);
+        if (!IsLasered)
+            trigger.EndTrigger(this, TriggerSourceKey);
     }
 }
