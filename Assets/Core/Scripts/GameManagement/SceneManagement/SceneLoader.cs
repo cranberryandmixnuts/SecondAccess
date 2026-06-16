@@ -1,113 +1,278 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
+using DG.Tweening;
+using Sirenix.OdinInspector;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using DG.Tweening;
-using Sirenix.OdinInspector;
 
-public sealed class SceneLoader : Singleton<SceneLoader, GlobalScope>
+public sealed class SceneLoader : NetworkSingleton<SceneLoader, GlobalScope>
 {
     [Header("Fade UI")]
     [SerializeField, Required] private Image fadeImage;
     [SerializeField] private float fadeDuration = 1.0f;
 
-    public bool IsTransitioning { get; private set; } = false;
+    public bool IsTransitioning { get; private set; }
     public SceneType CurrentSceneType { get; private set; } = SceneType.None;
 
     public event Action<SceneType> TransitionCompleted;
 
     private Tween fadeTween;
-    private Tween pendingRequestTween;
+    private Coroutine completionRoutine;
     private SceneType pendingScene = SceneType.None;
+    private string loadingSceneName;
 
-    private void Start()
+    protected override void NetworkSingletonAwake()
     {
         CurrentSceneType = GetCurrentSceneType();
+        ResetFade();
+    }
 
-        Color imageColor = fadeImage.color;
-        imageColor.a = 0f;
-        fadeImage.color = imageColor;
+    protected override void NetworkSingletonOnNetworkSpawn()
+    {
+        if (NetworkManager.SceneManager != null)
+            NetworkManager.SceneManager.OnSceneEvent += OnSceneEvent;
+    }
 
-        fadeImage.gameObject.SetActive(false);
+    protected override void NetworkSingletonOnNetworkDespawn()
+    {
+        if (NetworkManager != null && NetworkManager.SceneManager != null)
+            NetworkManager.SceneManager.OnSceneEvent -= OnSceneEvent;
+    }
+
+    protected override void NetworkSingletonOnDestroy()
+    {
+        if (NetworkManager != null && NetworkManager.SceneManager != null)
+            NetworkManager.SceneManager.OnSceneEvent -= OnSceneEvent;
+
+        fadeTween?.Kill(false);
+
+        if (completionRoutine != null)
+            StopCoroutine(completionRoutine);
     }
 
     public void LoadScene(SceneType scene)
     {
-        string sceneName = SceneTypeMap.GetName(scene);
-        if (string.IsNullOrEmpty(sceneName) || scene == SceneType.None)
-        {
-            Debug.LogError($"{sceneName}씬이 존재하지 않습니다.");
+        if (!TryGetSceneName(scene, out string sceneName))
             return;
-        }
+
+        if (!CanLoadNetworkScene())
+            return;
 
         if (IsTransitioning)
         {
-            ReserveSceneLoad(scene);
+            pendingScene = scene;
             return;
         }
 
-        StartCoroutine(LoadSceneSequence(scene));
+        StartCoroutine(ServerLoadSceneSequence(sceneName));
     }
 
-    private void ReserveSceneLoad(SceneType scene)
+    private IEnumerator ServerLoadSceneSequence(string sceneName)
     {
-        pendingScene = scene;
+        IsTransitioning = true;
+        loadingSceneName = sceneName;
+        pendingScene = SceneType.None;
 
-        if (pendingRequestTween != null && pendingRequestTween.IsActive())
-            pendingRequestTween.Kill(false);
+        BeginFade(1f);
+        SendBeginFadeToClients(1f);
 
-        float delay = GetRemainingFadeTime();
-        pendingRequestTween = DOVirtual.DelayedCall(delay, TryExecutePending, true).SetUpdate(true);
+        yield return fadeTween.WaitForCompletion();
+
+        SceneEventProgressStatus status = NetworkManager.SceneManager.LoadScene(sceneName, LoadSceneMode.Single);
+
+        if (status == SceneEventProgressStatus.Started)
+            yield break;
+
+        Debug.LogError($"네트워크 씬 로드 실패: {sceneName}, Status={status}", this);
+        StartCoroutine(CancelTransitionSequence());
+        SendCancelTransitionToClients();
     }
 
-    private void TryExecutePending()
+    private IEnumerator CancelTransitionSequence()
     {
-        if (IsTransitioning) return;
-        if (pendingScene == SceneType.None) return;
+        loadingSceneName = null;
+        pendingScene = SceneType.None;
+
+        yield return BeginFade(0f).WaitForCompletion();
+
+        fadeImage.gameObject.SetActive(false);
+        IsTransitioning = false;
+    }
+
+    private void OnSceneEvent(SceneEvent sceneEvent)
+    {
+        switch (sceneEvent.SceneEventType)
+        {
+            case SceneEventType.Load:
+                OnNetworkLoadStarted(sceneEvent);
+                break;
+
+            case SceneEventType.LoadEventCompleted:
+                OnNetworkLoadCompleted(sceneEvent);
+                break;
+        }
+    }
+
+    private void OnNetworkLoadStarted(SceneEvent sceneEvent)
+    {
+        if (IsServer)
+            return;
+
+        IsTransitioning = true;
+        loadingSceneName = sceneEvent.SceneName;
+
+        if (Mathf.Approximately(fadeImage.color.a, 1f))
+            return;
+
+        BeginFade(1f);
+    }
+
+    private void OnNetworkLoadCompleted(SceneEvent sceneEvent)
+    {
+        if (!string.IsNullOrEmpty(loadingSceneName) && sceneEvent.SceneName != loadingSceneName)
+            return;
+
+        loadingSceneName = null;
+
+        if (SceneTypeMap.TryGetTypeByName(sceneEvent.SceneName, out SceneType sceneType))
+            CurrentSceneType = sceneType;
+        else
+        {
+            Debug.LogError($"로드 완료된 씬 이름 '{sceneEvent.SceneName}' 이 SceneTypeMap과 일치하지 않습니다.", this);
+            CurrentSceneType = SceneType.None;
+        }
+
+        if (completionRoutine != null)
+            StopCoroutine(completionRoutine);
+
+        completionRoutine = StartCoroutine(CompleteTransitionSequence(CurrentSceneType));
+    }
+
+    private IEnumerator CompleteTransitionSequence(SceneType completedScene)
+    {
+        yield return BeginFade(0f).WaitForCompletion();
+
+        fadeImage.gameObject.SetActive(false);
+        IsTransitioning = false;
+        completionRoutine = null;
+        TransitionCompleted?.Invoke(completedScene);
+
+        if (!IsServer)
+            yield break;
+
+        if (pendingScene == SceneType.None)
+            yield break;
 
         SceneType next = pendingScene;
         pendingScene = SceneType.None;
         LoadScene(next);
     }
 
-    private IEnumerator LoadSceneSequence(SceneType scene)
+    private bool CanLoadNetworkScene()
     {
-        IsTransitioning = true;
-        fadeImage.gameObject.SetActive(true);
-
-        yield return FadeTo(1f).WaitForCompletion();
-
-        string sceneName = SceneTypeMap.GetName(scene);
-        if (string.IsNullOrEmpty(sceneName) || scene == SceneType.None)
+        if (!IsSpawned)
         {
-            Debug.LogError($"{sceneName}씬이 존재하지 않습니다.");
-            IsTransitioning = false;
-            fadeImage.gameObject.SetActive(false);
-            yield break;
+            Debug.LogError("SceneLoader가 아직 네트워크에 Spawn되지 않았습니다.", this);
+            return false;
         }
 
-        AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(sceneName);
-        yield return new WaitUntil(() => asyncLoad.isDone);
-
-        CurrentSceneType = GetCurrentSceneType();
-        TransitionCompleted?.Invoke(CurrentSceneType);
-
-        yield return FadeTo(0f).WaitForCompletion();
-
-        fadeImage.gameObject.SetActive(false);
-        IsTransitioning = false;
-
-        if (pendingScene != SceneType.None)
+        if (!IsServer)
         {
-            SceneType next = pendingScene;
-            pendingScene = SceneType.None;
-            LoadScene(next);
+            Debug.LogWarning("네트워크 씬 전환은 서버 또는 호스트에서만 실행할 수 있습니다.", this);
+            return false;
         }
+
+        if (!NetworkManager.NetworkConfig.EnableSceneManagement)
+        {
+            Debug.LogError("NetworkManager의 Enable Scene Management가 꺼져 있습니다.", this);
+            return false;
+        }
+
+        return true;
     }
 
-    private Tween FadeTo(float targetAlpha)
+    private bool TryGetSceneName(SceneType scene, out string sceneName)
     {
+        sceneName = SceneTypeMap.GetName(scene);
+
+        if (!string.IsNullOrEmpty(sceneName) && scene != SceneType.None)
+            return true;
+
+        Debug.LogError($"{sceneName}씬이 존재하지 않습니다.", this);
+        return false;
+    }
+
+    private void SendBeginFadeToClients(float targetAlpha)
+    {
+        if (!TryGetRemoteClientRpcParams(out ClientRpcParams clientRpcParams))
+            return;
+
+        BeginFadeClientRpc(targetAlpha, clientRpcParams);
+    }
+
+    private void SendCancelTransitionToClients()
+    {
+        if (!TryGetRemoteClientRpcParams(out ClientRpcParams clientRpcParams))
+            return;
+
+        CancelTransitionClientRpc(clientRpcParams);
+    }
+
+    private bool TryGetRemoteClientRpcParams(out ClientRpcParams clientRpcParams)
+    {
+        List<ulong> clientIds = new();
+
+        foreach (ulong clientId in NetworkManager.ConnectedClientsIds)
+        {
+            if (clientId == NetworkManager.ServerClientId)
+                continue;
+
+            clientIds.Add(clientId);
+        }
+
+        if (clientIds.Count > 0)
+        {
+            clientRpcParams = new ClientRpcParams
+            {
+                Send = new ClientRpcSendParams
+                {
+                    TargetClientIds = clientIds.ToArray()
+                }
+            };
+
+            return true;
+        }
+
+        clientRpcParams = default;
+        return false;
+    }
+
+    [ClientRpc]
+    private void BeginFadeClientRpc(float targetAlpha, ClientRpcParams clientRpcParams = default)
+    {
+        if (IsServer)
+            return;
+
+        IsTransitioning = true;
+        BeginFade(targetAlpha);
+    }
+
+    [ClientRpc]
+    private void CancelTransitionClientRpc(ClientRpcParams clientRpcParams = default)
+    {
+        if (IsServer)
+            return;
+
+        StartCoroutine(CancelTransitionSequence());
+    }
+
+    private Tween BeginFade(float targetAlpha)
+    {
+        fadeImage.gameObject.SetActive(true);
+
         if (fadeTween != null && fadeTween.IsActive())
             fadeTween.Kill(false);
 
@@ -119,24 +284,23 @@ public sealed class SceneLoader : Singleton<SceneLoader, GlobalScope>
         return fadeTween;
     }
 
-    private float GetRemainingFadeTime()
+    private void ResetFade()
     {
-        if (fadeTween == null) return 0f;
-        if (!fadeTween.IsActive()) return 0f;
-        if (!fadeTween.IsPlaying()) return 0f;
+        Color imageColor = fadeImage.color;
+        imageColor.a = 0f;
+        fadeImage.color = imageColor;
 
-        float remaining = fadeTween.Duration(false) - fadeTween.Elapsed(false);
-        if (remaining < 0f) remaining = 0f;
-        return remaining;
+        fadeImage.gameObject.SetActive(false);
     }
 
     private SceneType GetCurrentSceneType()
     {
-        string name = SceneManager.GetActiveScene().name;
-        if (SceneTypeMap.TryGetTypeByName(name, out SceneType t))
-            return t;
+        string sceneName = SceneManager.GetActiveScene().name;
 
-        Debug.LogError($"현재 씬 이름 '{name}' 이 SceneTypeMap과 일치하지 않습니다.");
+        if (SceneTypeMap.TryGetTypeByName(sceneName, out SceneType sceneType))
+            return sceneType;
+
+        Debug.LogError($"현재 씬 이름 '{sceneName}' 이 SceneTypeMap과 일치하지 않습니다.", this);
         return SceneType.None;
     }
 }

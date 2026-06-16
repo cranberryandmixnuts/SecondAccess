@@ -7,6 +7,7 @@ public static class SceneTypeMap
     {
         "",
         "TitleScene",
+        "InGame",
         "TestScene",
     };
 
@@ -14,6 +15,7 @@ public static class SceneTypeMap
     {
         "",
         "Assets/Core/Scenes/TitleScene.unity",
+        "Assets/Core/Scenes/InGame.unity",
         "Assets/Core/Test/TestScene.unity",
     };
 
@@ -22,11 +24,13 @@ public static class SceneTypeMap
         false,
         true,
         true,
+        true,
     };
 
     private static readonly Dictionary<string, SceneType> NameToType = new(StringComparer.Ordinal)
     {
         { "TitleScene", SceneType.TitleScene },
+        { "InGame", SceneType.InGame },
         { "TestScene", SceneType.TestScene },
     };
 
