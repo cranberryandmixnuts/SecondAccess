@@ -17,13 +17,17 @@ public sealed class PlayerMovementModule : PlayerModule
     public bool SimulationEnabled { get; private set; } = true;
 
     private NetworkPlayer networkPlayer;
+    private string currentAnimationName;
 
     private bool ShouldSimulate => !Player.IsSpawned || Player.IsServer;
 
     private void FixedUpdate()
     {
         if (!SimulationEnabled)
+        {
+            PlayMoveAnimation(false);
             return;
+        }
 
         if (!ShouldSimulate)
             return;
@@ -37,7 +41,10 @@ public sealed class PlayerMovementModule : PlayerModule
 
         EvaluateEnergyDistance();
 
-        if (MoveDirection.sqrMagnitude <= 0.0001f)
+        bool isMoving = MoveDirection.sqrMagnitude > 0.0001f;
+        PlayMoveAnimation(isMoving);
+
+        if (!isMoving)
             return;
 
         Quaternion targetRotation = Quaternion.LookRotation(MoveDirection, Vector3.up);
@@ -74,8 +81,21 @@ public sealed class PlayerMovementModule : PlayerModule
         MoveDirection = Vector3.zero;
         DesiredVelocity = Vector3.zero;
 
+        PlayMoveAnimation(false);
+
         if (Player.IsServer || !Player.IsSpawned)
             Player.Body.linearVelocity = new Vector3(0f, Player.Body.linearVelocity.y, 0f);
+    }
+
+    private void PlayMoveAnimation(bool isMoving)
+    {
+        string animationName = isMoving ? "Walk" : "Idle";
+
+        if (currentAnimationName == animationName)
+            return;
+
+        currentAnimationName = animationName;
+        Player.Animator.Play(animationName);
     }
 
     private Vector3 ResolveLinkedPlanarVelocity(Vector3 baseVelocity)

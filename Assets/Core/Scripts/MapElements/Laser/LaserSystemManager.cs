@@ -91,7 +91,6 @@ public sealed class LaserSystemManager : Singleton<LaserSystemManager, GlobalSco
         if (receiver != null)
             return true;
 
-        receiver = targetCollider.GetComponentInParent<LaserInverseReceiverRuntime>();
         return receiver != null;
     }
 

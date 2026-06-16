@@ -24,7 +24,7 @@ public sealed class LinkEye : MonoBehaviour
     private float moveSmoothTime = 0.15f;
 
     [SerializeField, TitleGroup("Movement"), MinValue(0f)]
-    private float heightOffset = 0f;
+    private float heightOffset = 0.5f;
 
     [SerializeField, TitleGroup("Camera")]
     private Vector3 cameraOffset = new(0f, 16f, -3f);
